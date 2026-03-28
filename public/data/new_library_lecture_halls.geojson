@@ -1,0 +1,28 @@
+{
+"type": "FeatureCollection",
+"name": "new library lecture halls",
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "room_id": 1, "building_id": 0, "lecture_capacity": 390, "examination_capacity": 195, "current_number_of_seats": 200, "floor_number": 0, "lecture_room_name": "NL 5" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 2, "room_id": 2, "building_id": 0, "lecture_capacity": 252, "examination_capacity": 126, "current_number_of_seats": 100, "floor_number": 0, "lecture_room_name": "NL 5 ANNEX" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 3, "room_id": 3, "building_id": 0, "lecture_capacity": 40, "examination_capacity": 20, "current_number_of_seats": 50, "floor_number": 0, "lecture_room_name": "NL 2" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 4, "room_id": 4, "building_id": 0, "lecture_capacity": 120, "examination_capacity": 60, "current_number_of_seats": 89, "floor_number": 0, "lecture_room_name": "NL 2 ANNEX" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 5, "room_id": 5, "building_id": 0, "lecture_capacity": 70, "examination_capacity": 45, "current_number_of_seats": 50, "floor_number": 0, "lecture_room_name": "NL 8" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 6, "room_id": 6, "building_id": 0, "lecture_capacity": 30, "examination_capacity": 15, "current_number_of_seats": 30, "floor_number": 0, "lecture_room_name": "NL 8 ANNEX 1" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 7, "room_id": 7, "building_id": 0, "lecture_capacity": 90, "examination_capacity": 45, "current_number_of_seats": 22, "floor_number": 0, "lecture_room_name": "NL ANNEX 2" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 8, "room_id": 8, "building_id": 0, "lecture_capacity": 216, "examination_capacity": 108, "current_number_of_seats": 100, "floor_number": 1, "lecture_room_name": "NL 10" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 9, "room_id": 9, "building_id": 0, "lecture_capacity": 216, "examination_capacity": 108, "current_number_of_seats": 90, "floor_number": 1, "lecture_room_name": "NL 10 ANNEX" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 10, "room_id": 10, "building_id": 0, "lecture_capacity": 156, "examination_capacity": 78, "current_number_of_seats": 70, "floor_number": 1, "lecture_room_name": "NL 11" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 11, "room_id": 11, "building_id": 0, "lecture_capacity": 98, "examination_capacity": 45, "current_number_of_seats": 60, "floor_number": 1, "lecture_room_name": "NL 12" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 12, "room_id": 12, "building_id": 0, "lecture_capacity": 126, "examination_capacity": 68, "current_number_of_seats": 70, "floor_number": 1, "lecture_room_name": "NL 13" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 13, "room_id": 13, "building_id": 0, "lecture_capacity": 304, "examination_capacity": 152, "current_number_of_seats": 200, "floor_number": 1, "lecture_room_name": "NL 14" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 14, "room_id": 14, "building_id": 0, "lecture_capacity": 168, "examination_capacity": 84, "current_number_of_seats": 84, "floor_number": 1, "lecture_room_name": "NL 15" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 15, "room_id": 15, "building_id": 0, "lecture_capacity": 102, "examination_capacity": 51, "current_number_of_seats": 60, "floor_number": 1, "lecture_room_name": "NL 15 ANNEX" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 16, "room_id": 16, "building_id": 0, "lecture_capacity": 240, "examination_capacity": 120, "current_number_of_seats": 76, "floor_number": 1, "lecture_room_name": "NL 16" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 17, "room_id": 17, "building_id": 0, "lecture_capacity": 240, "examination_capacity": 120, "current_number_of_seats": 70, "floor_number": 1, "lecture_room_name": "NL 16 ANNEX 1" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 18, "room_id": 18, "building_id": 0, "lecture_capacity": 154, "examination_capacity": 77, "current_number_of_seats": 60, "floor_number": 1, "lecture_room_name": "NL 16 ANNEX 2" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 19, "room_id": 19, "building_id": 0, "lecture_capacity": 154, "examination_capacity": 77, "current_number_of_seats": 77, "floor_number": 1, "lecture_room_name": "NL 17" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 20, "room_id": 20, "building_id": 0, "lecture_capacity": 108, "examination_capacity": 54, "current_number_of_seats": 54, "floor_number": 0, "lecture_room_name": "NL 17 ANNEX" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 21, "room_id": 21, "building_id": 0, "lecture_capacity": null, "examination_capacity": null, "current_number_of_seats": 0, "floor_number": 2, "lecture_room_name": "LIBRARY" }, "geometry": null },
+{ "type": "Feature", "properties": { "fid": 22, "room_id": 22, "building_id": 0, "lecture_capacity": null, "examination_capacity": null, "current_number_of_seats": 0, "floor_number": 0, "lecture_room_name": "POST GRADUATE LIBRARY" }, "geometry": null }
+]
+}
