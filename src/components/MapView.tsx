@@ -1,13 +1,23 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LAYER_CONFIGS, type GeoDataState, type ChildTables } from '@/hooks/useGeoData';
+import { RoadGraph, type RouteResult } from '@/lib/routing';
 
 const BASEMAPS = {
   osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap contributors', label: 'OSM' },
   voyager: { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr: '© CartoDB', label: 'Voyager' },
   positron: { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr: '© CartoDB', label: 'Light' },
 };
+
+// Photo mapping for buildings
+const BUILDING_PHOTOS: Record<string, string> = {
+  'Administarion office': '/images/administration_office.jpg',
+  'NEW LIBRARY': '/images/new_library.jpg',
+};
+
+const CLINIC_PHOTO = '/images/university_clinic.jpeg';
+const NL5_PHOTO = '/images/nl5_lecture_hall.jpeg';
 
 function createSvgIcon(color: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="28" height="40">
@@ -23,6 +33,10 @@ function createSvgIcon(color: string) {
   });
 }
 
+function photoHtml(src: string, alt: string): string {
+  return `<img src="${src}" alt="${alt}" style="width:100%;max-height:160px;object-fit:cover;border-radius:6px;margin:8px 0 4px;" onerror="this.style.display='none'" />`;
+}
+
 function getPopupContent(
   feature: GeoJSON.Feature,
   layerId: string,
@@ -32,6 +46,7 @@ function getPopupContent(
 
   if (layerId === 'clinic') {
     return `<div class="campus-popup">
+      ${photoHtml(CLINIC_PHOTO, 'University Clinic')}
       <h3>Maseno University Health Services</h3>
       <span class="badge" style="background:#fce4ec;color:#c62828;">Clinic</span>
       <table>
@@ -41,7 +56,7 @@ function getPopupContent(
         <tr><td>Visiting PM</td><td>${p['visit_PM 1'] || '1:00PM–2:00PM'}</td></tr>
         <tr><td>Visiting Eve</td><td>${p['visit_PM 2'] || '5:00PM–6:00PM'}</td></tr>
         <tr><td>Population</td><td>Staff, Dependants, Students, Community</td></tr>
-        <tr><td>Services</td><td style="font-size:11px;">${p.SERVICES || ''}</td></tr>
+        <tr><td>Services</td><td style="font-size:11px;">${p.SERVICES || 'Outpatient, Inpatient, HIV Care, Laboratory, Pharmacy, Counselling, Antenatal, MCH, Family Planning, Maternity, Emergency, Ambulance'}</td></tr>
         <tr><td>Client Rights</td><td style="font-size:11px;">Quality Service, Right to Information, Complain/Compliment, Privacy, Access</td></tr>
         <tr><td>Feedback</td><td>Direct Feedback, Suggestion Box, Exit Interviews</td></tr>
       </table>
@@ -62,8 +77,14 @@ function getPopupContent(
     clinic: 'background:#fce4ec;color:#c62828;',
   };
 
-  let content = `<div class="campus-popup">
-    <h3>${name}</h3>
+  // Check for building photo
+  const buildingPhoto = BUILDING_PHOTOS[name] || '';
+
+  let content = `<div class="campus-popup">`;
+  if (buildingPhoto) {
+    content += photoHtml(buildingPhoto, name);
+  }
+  content += `<h3>${name}</h3>
     <span class="badge" style="${badgeColors[layerId] || ''}">${layerCfg?.label || layerId}</span>`;
 
   if (layerId === 'hostels') {
@@ -74,7 +95,6 @@ function getPopupContent(
     </table>`;
   } else if (layerId === 'lecture_halls') {
     const buildingId = p.building_id;
-    // Check for New Library (building_id = 0)
     if (buildingId === 0 && childTables.newLibrary) {
       content += `<p style="font-size:12px;color:#666;margin:4px 0;">Multi-storey building with lecture rooms</p>`;
       content += buildRoomTable(childTables.newLibrary, 'New Library');
@@ -124,11 +144,17 @@ function buildRoomTable(childTable: GeoJSON.FeatureCollection, buildingName: str
     html += `<table><tr><th>Room</th><th>Lec. Cap</th><th>Exam Cap</th></tr>`;
     rooms.forEach(r => {
       const rp = r.properties || {};
+      const roomName = rp[roomNameKey] || 'N/A';
+      // Add NL5 photo inline if it's NL 5
+      const isNL5 = roomName === 'NL 5';
       html += `<tr>
-        <td style="text-align:left;font-weight:500;">${rp[roomNameKey] || 'N/A'}</td>
+        <td style="text-align:left;font-weight:500;">${roomName}${isNL5 ? ' 📷' : ''}</td>
         <td>${rp[lecCapKey] ?? '—'}</td>
         <td>${rp[examCapKey] ?? '—'}</td>
       </tr>`;
+      if (isNL5) {
+        html += `<tr><td colspan="3" style="padding:2px 4px;">${photoHtml(NL5_PHOTO, 'NL 5 Lecture Hall')}</td></tr>`;
+      }
     });
     html += '</table>';
   });
@@ -142,13 +168,22 @@ interface MapViewProps {
   layerVisibility: Record<string, boolean>;
   selectedFeature: { layerId: string; featureIndex: number } | null;
   filteredFeatures: Record<string, number[]> | null;
+  routeResult: RouteResult | null;
+  userLocation: [number, number] | null;
+  destinationLocation: [number, number] | null;
 }
 
-export default function MapView({ geoData, childTables, layerVisibility, selectedFeature, filteredFeatures }: MapViewProps) {
+export default function MapView({
+  geoData, childTables, layerVisibility, selectedFeature, filteredFeatures,
+  routeResult, userLocation, destinationLocation,
+}: MapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const layerGroupsRef = useRef<Record<string, L.LayerGroup>>({});
   const baseTileRef = useRef<L.TileLayer | null>(null);
+  const routeLayerRef = useRef<L.LayerGroup>(L.layerGroup());
+  const userMarkerRef = useRef<L.Marker | null>(null);
+  const destMarkerRef = useRef<L.Marker | null>(null);
 
   // Initialize map
   useEffect(() => {
@@ -165,10 +200,11 @@ export default function MapView({ geoData, childTables, layerVisibility, selecte
     const baseTile = L.tileLayer(BASEMAPS.osm.url, { attribution: BASEMAPS.osm.attr, maxZoom: 19 });
     baseTile.addTo(map);
     baseTileRef.current = baseTile;
+    routeLayerRef.current.addTo(map);
 
     mapRef.current = map;
 
-    // Add basemap switcher
+    // Basemap switcher
     const BasemapControl = L.Control.extend({
       options: { position: 'topright' as L.ControlPosition },
       onAdd() {
@@ -194,10 +230,7 @@ export default function MapView({ geoData, childTables, layerVisibility, selecte
     });
     new BasemapControl().addTo(map);
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    return () => { map.remove(); mapRef.current = null; };
   }, []);
 
   // Render layers
@@ -205,7 +238,6 @@ export default function MapView({ geoData, childTables, layerVisibility, selecte
     const map = mapRef.current;
     if (!map || !Object.keys(geoData).length) return;
 
-    // Clear existing layers
     Object.values(layerGroupsRef.current).forEach(lg => lg.clearLayers());
 
     LAYER_CONFIGS.forEach(cfg => {
@@ -235,11 +267,7 @@ export default function MapView({ geoData, childTables, layerVisibility, selecte
         } else {
           const geoLayer = L.geoJSON(feature, {
             style: {
-              color: cfg.color,
-              weight: 2,
-              fillColor: cfg.color,
-              fillOpacity: 0.25,
-              opacity: 0.8,
+              color: cfg.color, weight: 2, fillColor: cfg.color, fillOpacity: 0.25, opacity: 0.8,
             },
           });
           geoLayer.bindPopup(() => getPopupContent(feature, cfg.id, childTables), { maxWidth: 380 });
@@ -247,11 +275,7 @@ export default function MapView({ geoData, childTables, layerVisibility, selecte
         }
       });
 
-      if (visible) {
-        group.addTo(map);
-      } else {
-        group.remove();
-      }
+      if (visible) { group.addTo(map); } else { group.remove(); }
     });
   }, [geoData, childTables, layerVisibility, filteredFeatures]);
 
@@ -266,21 +290,13 @@ export default function MapView({ geoData, childTables, layerVisibility, selecte
     const feature = fc.features[featureIndex];
     if (!feature || !feature.geometry) return;
 
-    const cfg = LAYER_CONFIGS.find(l => l.id === layerId);
-    if (!cfg) return;
-
-    // Ensure layer is visible
     const group = layerGroupsRef.current[layerId];
-    if (group && !map.hasLayer(group)) {
-      group.addTo(map);
-    }
+    if (group && !map.hasLayer(group)) group.addTo(map);
 
-    // Zoom to feature
     const tempLayer = L.geoJSON(feature);
     const bounds = tempLayer.getBounds();
     map.flyToBounds(bounds, { maxZoom: 18, padding: [50, 50], duration: 0.8 });
 
-    // Open popup at center
     setTimeout(() => {
       const center = bounds.getCenter();
       L.popup({ maxWidth: 380 })
@@ -301,9 +317,7 @@ export default function MapView({ geoData, childTables, layerVisibility, selecte
       if (!fc) return;
       indices.forEach(idx => {
         const f = fc.features[idx];
-        if (f?.geometry) {
-          allBounds.push(L.geoJSON(f).getBounds());
-        }
+        if (f?.geometry) allBounds.push(L.geoJSON(f).getBounds());
       });
     });
 
@@ -313,6 +327,55 @@ export default function MapView({ geoData, childTables, layerVisibility, selecte
       map.flyToBounds(combined, { maxZoom: 17, padding: [40, 40], duration: 0.8 });
     }
   }, [filteredFeatures, geoData]);
+
+  // Route display
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    routeLayerRef.current.clearLayers();
+
+    if (routeResult && routeResult.path.length > 1) {
+      const polyline = L.polyline(routeResult.path, {
+        color: '#2563eb', weight: 5, opacity: 0.8, dashArray: '10, 6',
+      });
+      routeLayerRef.current.addLayer(polyline);
+      map.flyToBounds(polyline.getBounds(), { padding: [60, 60], duration: 0.8 });
+    }
+  }, [routeResult]);
+
+  // User location marker
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (userMarkerRef.current) { userMarkerRef.current.remove(); userMarkerRef.current = null; }
+
+    if (userLocation) {
+      const icon = L.divIcon({
+        html: `<div style="width:16px;height:16px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 0 8px rgba(37,99,235,0.5);"></div>`,
+        className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+      });
+      userMarkerRef.current = L.marker(userLocation, { icon }).addTo(map);
+      userMarkerRef.current.bindPopup('📍 You are here');
+    }
+  }, [userLocation]);
+
+  // Destination marker
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (destMarkerRef.current) { destMarkerRef.current.remove(); destMarkerRef.current = null; }
+
+    if (destinationLocation) {
+      const icon = L.divIcon({
+        html: `<div style="width:14px;height:14px;background:#dc2626;border:3px solid white;border-radius:50%;box-shadow:0 0 8px rgba(220,38,38,0.5);"></div>`,
+        className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+      });
+      destMarkerRef.current = L.marker(destinationLocation, { icon }).addTo(map);
+      destMarkerRef.current.bindPopup('🏁 Destination');
+    }
+  }, [destinationLocation]);
 
   return <div ref={mapContainerRef} className="w-full h-full" />;
 }
