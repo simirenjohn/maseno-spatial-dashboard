@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react';
 import { Search, X, ChevronDown, ChevronRight, Eye, EyeOff, MapPin, Navigation } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LAYER_CONFIGS, type GeoDataState } from '@/hooks/useGeoData';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import RoutingPanel from '@/components/RoutingPanel';
+import type { RouteResult } from '@/lib/routing';
 
 interface SidebarProps {
   geoData: GeoDataState;
@@ -13,6 +14,12 @@ interface SidebarProps {
   onToggleLayer: (id: string) => void;
   onSelectFeature: (layerId: string, featureIndex: number) => void;
   onFilterChange: (filtered: Record<string, number[]> | null) => void;
+  onRoute: (fromLat: number, fromLng: number, toLat: number, toLng: number) => void;
+  onClearRoute: () => void;
+  onLocateUser: () => void;
+  userLocation: [number, number] | null;
+  routeResult: RouteResult | null;
+  isLocating: boolean;
 }
 
 interface Filters {
@@ -35,10 +42,14 @@ const DEFAULT_FILTERS: Filters = {
   labType: 'all',
 };
 
-export default function Sidebar({ geoData, layerVisibility, onToggleLayer, onSelectFeature, onFilterChange }: SidebarProps) {
+export default function Sidebar({
+  geoData, layerVisibility, onToggleLayer, onSelectFeature, onFilterChange,
+  onRoute, onClearRoute, onLocateUser, userLocation, routeResult, isLocating,
+}: SidebarProps) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [expandedLayers, setExpandedLayers] = useState<Record<string, boolean>>({ hostels: true });
+  const [routingExpanded, setRoutingExpanded] = useState(false);
 
   // Dynamic filter options
   const hostelPrices = useMemo(() => {
@@ -100,77 +111,12 @@ export default function Sidebar({ geoData, layerVisibility, onToggleLayer, onSel
   }, [search, geoData]);
 
   // Apply filters
-  const applyFilters = () => {
-    const hasActiveFilter = Object.values(filters).some(v => v !== 'all');
-    if (!hasActiveFilter) {
-      onFilterChange(null);
-      return;
-    }
-
-    const result: Record<string, number[]> = {};
-
-    // Hostel filters
-    if (filters.hostelGender !== 'all' || filters.hostelPrice !== 'all' || filters.hostelCapacity !== 'all') {
-      const indices: number[] = [];
-      geoData.hostels?.features.forEach((f, idx) => {
-        const p = f.properties || {};
-        let match = true;
-        if (filters.hostelGender !== 'all' && p.Gender?.toUpperCase() !== filters.hostelGender.toUpperCase()) match = false;
-        if (filters.hostelPrice !== 'all' && String(p.Price) !== filters.hostelPrice) match = false;
-        if (filters.hostelCapacity !== 'all' && String(p['Capacity Per Room']) !== filters.hostelCapacity) match = false;
-        if (match) indices.push(idx);
-      });
-      result.hostels = indices;
-    }
-
-    // Lecture hall filters
-    if (filters.lectureCapacity !== 'all' || filters.examCapacity !== 'all') {
-      const indices: number[] = [];
-      geoData.lecture_halls?.features.forEach((f, idx) => {
-        const p = f.properties || {};
-        let match = true;
-        if (filters.lectureCapacity !== 'all' && p['LECTURE CAPACITY'] !== Number(filters.lectureCapacity)) match = false;
-        if (filters.examCapacity !== 'all' && p['EXAMINATION CAPACITY'] !== Number(filters.examCapacity)) match = false;
-        if (match) indices.push(idx);
-      });
-      result.lecture_halls = indices;
-    }
-
-    // Admin filters
-    if (filters.adminType !== 'all') {
-      const indices: number[] = [];
-      geoData.administration?.features.forEach((f, idx) => {
-        if (f.properties?.type === filters.adminType) indices.push(idx);
-      });
-      result.administration = indices;
-    }
-
-    // Lab filters
-    if (filters.labType !== 'all') {
-      const indices: number[] = [];
-      geoData.labs?.features.forEach((f, idx) => {
-        if (f.properties?.NAME === filters.labType) indices.push(idx);
-      });
-      result.labs = indices;
-    }
-
-    onFilterChange(Object.keys(result).length > 0 ? result : null);
-  };
-
-  const clearAll = () => {
-    setFilters(DEFAULT_FILTERS);
-    setSearch('');
-    onFilterChange(null);
-  };
-
   const updateFilter = (key: keyof Filters, value: string) => {
     const next = { ...filters, [key]: value };
     setFilters(next);
-    // Auto-apply
     setTimeout(() => {
       const hasActive = Object.values(next).some(v => v !== 'all');
       if (!hasActive) { onFilterChange(null); return; }
-      // Re-run filter logic inline
       const result: Record<string, number[]> = {};
       if (next.hostelGender !== 'all' || next.hostelPrice !== 'all' || next.hostelCapacity !== 'all') {
         const indices: number[] = [];
@@ -211,6 +157,12 @@ export default function Sidebar({ geoData, layerVisibility, onToggleLayer, onSel
       }
       onFilterChange(Object.keys(result).length > 0 ? result : null);
     }, 0);
+  };
+
+  const clearAll = () => {
+    setFilters(DEFAULT_FILTERS);
+    setSearch('');
+    onFilterChange(null);
   };
 
   const getMatchCount = (layerId: string): number | null => {
@@ -261,7 +213,6 @@ export default function Sidebar({ geoData, layerVisibility, onToggleLayer, onSel
           )}
         </div>
 
-        {/* Search results */}
         {searchResults.length > 0 && (
           <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-border bg-popover">
             {searchResults.map((r, i) => (
@@ -298,15 +249,11 @@ export default function Sidebar({ geoData, layerVisibility, onToggleLayer, onSel
 
           return (
             <div key={cfg.id} className="border-b border-border">
-              {/* Layer header */}
               <div className="flex items-center px-4 py-2.5 hover:bg-muted/50 transition-colors">
                 <button onClick={() => toggleExpanded(cfg.id)} className="mr-2 text-muted-foreground">
                   {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 </button>
-                <div
-                  className="w-3 h-3 rounded-full mr-2 shrink-0"
-                  style={{ backgroundColor: cfg.color }}
-                />
+                <div className="w-3 h-3 rounded-full mr-2 shrink-0" style={{ backgroundColor: cfg.color }} />
                 <button onClick={() => toggleExpanded(cfg.id)} className="flex-1 text-left">
                   <span className="text-sm font-semibold">{cfg.label}</span>
                   <span className="text-xs text-muted-foreground ml-1.5">
@@ -322,88 +269,40 @@ export default function Sidebar({ geoData, layerVisibility, onToggleLayer, onSel
                 </button>
               </div>
 
-              {/* Expanded: filters */}
               {isExpanded && (
                 <div className="px-4 pb-3 space-y-2">
                   {cfg.id === 'hostels' && (
                     <>
-                      <FilterSelect
-                        label="Gender"
-                        value={filters.hostelGender}
-                        onChange={v => updateFilter('hostelGender', v)}
-                        options={[
-                          { value: 'all', label: 'All' },
-                          { value: 'MALE', label: 'Male' },
-                          { value: 'FEMALE', label: 'Female' },
-                          { value: 'MIXED', label: 'Mixed' },
-                        ]}
-                      />
-                      <FilterSelect
-                        label="Price (KES)"
-                        value={filters.hostelPrice}
-                        onChange={v => updateFilter('hostelPrice', v)}
-                        options={[
-                          { value: 'all', label: 'All Prices' },
-                          ...hostelPrices.map(p => ({ value: String(p), label: `KES ${p.toLocaleString()}` })),
-                        ]}
-                      />
-                      <FilterSelect
-                        label="Capacity/Room"
-                        value={filters.hostelCapacity}
-                        onChange={v => updateFilter('hostelCapacity', v)}
-                        options={[
-                          { value: 'all', label: 'All' },
-                          ...hostelCapacities.map(c => ({ value: String(c), label: `${c} per room` })),
-                        ]}
-                      />
+                      <FilterSelect label="Gender" value={filters.hostelGender} onChange={v => updateFilter('hostelGender', v)} options={[
+                        { value: 'all', label: 'All' }, { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' }, { value: 'MIXED', label: 'Mixed' },
+                      ]} />
+                      <FilterSelect label="Price (KES)" value={filters.hostelPrice} onChange={v => updateFilter('hostelPrice', v)} options={[
+                        { value: 'all', label: 'All Prices' }, ...hostelPrices.map(p => ({ value: String(p), label: `KES ${p.toLocaleString()}` })),
+                      ]} />
+                      <FilterSelect label="Capacity/Room" value={filters.hostelCapacity} onChange={v => updateFilter('hostelCapacity', v)} options={[
+                        { value: 'all', label: 'All' }, ...hostelCapacities.map(c => ({ value: String(c), label: `${c} per room` })),
+                      ]} />
                     </>
                   )}
-
                   {cfg.id === 'lecture_halls' && (
                     <>
-                      <FilterSelect
-                        label="Lecture Capacity"
-                        value={filters.lectureCapacity}
-                        onChange={v => updateFilter('lectureCapacity', v)}
-                        options={[
-                          { value: 'all', label: 'All' },
-                          ...lectureCapacities.map(c => ({ value: String(c), label: `${c} seats` })),
-                        ]}
-                      />
-                      <FilterSelect
-                        label="Exam Capacity"
-                        value={filters.examCapacity}
-                        onChange={v => updateFilter('examCapacity', v)}
-                        options={[
-                          { value: 'all', label: 'All' },
-                          ...examCapacities.map(c => ({ value: String(c), label: `${c} seats` })),
-                        ]}
-                      />
+                      <FilterSelect label="Lecture Capacity" value={filters.lectureCapacity} onChange={v => updateFilter('lectureCapacity', v)} options={[
+                        { value: 'all', label: 'All' }, ...lectureCapacities.map(c => ({ value: String(c), label: `${c} seats` })),
+                      ]} />
+                      <FilterSelect label="Exam Capacity" value={filters.examCapacity} onChange={v => updateFilter('examCapacity', v)} options={[
+                        { value: 'all', label: 'All' }, ...examCapacities.map(c => ({ value: String(c), label: `${c} seats` })),
+                      ]} />
                     </>
                   )}
-
                   {cfg.id === 'administration' && (
-                    <FilterSelect
-                      label="Department Type"
-                      value={filters.adminType}
-                      onChange={v => updateFilter('adminType', v)}
-                      options={[
-                        { value: 'all', label: 'All Types' },
-                        ...adminTypes.map(t => ({ value: t, label: t })),
-                      ]}
-                    />
+                    <FilterSelect label="Department Type" value={filters.adminType} onChange={v => updateFilter('adminType', v)} options={[
+                      { value: 'all', label: 'All Types' }, ...adminTypes.map(t => ({ value: t, label: t })),
+                    ]} />
                   )}
-
                   {cfg.id === 'labs' && (
-                    <FilterSelect
-                      label="Lab Type"
-                      value={filters.labType}
-                      onChange={v => updateFilter('labType', v)}
-                      options={[
-                        { value: 'all', label: 'All Labs' },
-                        ...labTypes.map(t => ({ value: t, label: t })),
-                      ]}
-                    />
+                    <FilterSelect label="Lab Type" value={filters.labType} onChange={v => updateFilter('labType', v)} options={[
+                      { value: 'all', label: 'All Labs' }, ...labTypes.map(t => ({ value: t, label: t })),
+                    ]} />
                   )}
                 </div>
               )}
@@ -411,13 +310,29 @@ export default function Sidebar({ geoData, layerVisibility, onToggleLayer, onSel
           );
         })}
 
-        {/* Get Directions placeholder */}
+        {/* Get Directions - now functional */}
         <div className="border-b border-border">
-          <div className="flex items-center px-4 py-2.5 text-muted-foreground">
-            <Navigation className="h-4 w-4 mr-2" />
-            <span className="text-sm font-medium">Get Directions</span>
-            <Badge variant="secondary" className="ml-auto text-[10px] py-0">Coming Soon</Badge>
+          <div
+            className="flex items-center px-4 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer"
+            onClick={() => setRoutingExpanded(!routingExpanded)}
+          >
+            <button className="mr-2 text-muted-foreground">
+              {routingExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            </button>
+            <Navigation className="h-4 w-4 mr-2 text-primary" />
+            <span className="text-sm font-semibold">Get Directions</span>
           </div>
+          {routingExpanded && (
+            <RoutingPanel
+              geoData={geoData}
+              onRoute={onRoute}
+              onClearRoute={onClearRoute}
+              onLocateUser={onLocateUser}
+              userLocation={userLocation}
+              routeResult={routeResult}
+              isLocating={isLocating}
+            />
+          )}
         </div>
       </div>
     </div>
