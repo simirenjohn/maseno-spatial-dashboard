@@ -202,6 +202,23 @@ export default function MapView({
     baseTileRef.current = baseTile;
     routeLayerRef.current.addTo(map);
 
+    // Load study area boundaries (red outline, no fill)
+    const studyAreaFiles = [
+      '/data/college_campus_study_area.geojson',
+      '/data/niles_study_area.geojson',
+      '/data/siriba_study_area.geojson',
+    ];
+    studyAreaFiles.forEach(file => {
+      fetch(file)
+        .then(r => r.json())
+        .then(geojson => {
+          L.geoJSON(geojson, {
+            style: { color: '#dc2626', weight: 2.5, fillOpacity: 0, opacity: 0.9, dashArray: '6, 4' },
+          }).addTo(map);
+        })
+        .catch(err => console.warn('Study area load error:', err));
+    });
+
     mapRef.current = map;
 
     // Basemap switcher
