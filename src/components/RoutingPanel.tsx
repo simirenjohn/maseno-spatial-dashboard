@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Navigation, MapPin, Locate, X, Clock, Route } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { MapPin, Locate, X, Clock, Route } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { LAYER_CONFIGS, type GeoDataState } from '@/hooks/useGeoData';
@@ -15,15 +15,52 @@ interface RoutingPanelProps {
   isLocating: boolean;
 }
 
+interface FeatureItem {
+  name: string;
+  layerId: string;
+  lat: number;
+  lng: number;
+  label: string;
+}
+
+function getBounds(geometry: GeoJSON.Geometry) {
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  const processCoords = (coords: any) => {
+    if (typeof coords[0] === 'number') {
+      minLng = Math.min(minLng, coords[0]);
+      maxLng = Math.max(maxLng, coords[0]);
+      minLat = Math.min(minLat, coords[1]);
+      maxLat = Math.max(maxLat, coords[1]);
+    } else {
+      coords.forEach(processCoords);
+    }
+  };
+  processCoords((geometry as any).coordinates);
+  return { minLat, maxLat, minLng, maxLng };
+}
+
 export default function RoutingPanel({
   geoData, onRoute, onClearRoute, onLocateUser, userLocation, routeResult, isLocating,
 }: RoutingPanelProps) {
   const [destination, setDestination] = useState('');
   const [showResults, setShowResults] = useState(false);
+  const [selectedDest, setSelectedDest] = useState<FeatureItem | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // All searchable features with their center coordinates
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // All searchable features
   const allFeatures = useMemo(() => {
-    const results: { name: string; layerId: string; lat: number; lng: number; label: string }[] = [];
+    const results: FeatureItem[] = [];
     LAYER_CONFIGS.forEach(cfg => {
       const fc = geoData[cfg.id];
       if (!fc) return;
@@ -36,7 +73,6 @@ export default function RoutingPanel({
           const coords = (f.geometry as GeoJSON.Point).coordinates;
           lng = coords[0]; lat = coords[1];
         } else {
-          // Get centroid of polygon
           const bounds = getBounds(f.geometry);
           lat = (bounds.minLat + bounds.maxLat) / 2;
           lng = (bounds.minLng + bounds.maxLng) / 2;
@@ -53,18 +89,20 @@ export default function RoutingPanel({
     return allFeatures.filter(f => f.name.toLowerCase().includes(q)).slice(0, 10);
   }, [destination, allFeatures]);
 
-  const selectDestination = useCallback((feat: typeof allFeatures[0]) => {
+  const selectDestination = useCallback((feat: FeatureItem) => {
     setDestination(feat.name);
+    setSelectedDest(feat);
     setShowResults(false);
     if (userLocation) {
       onRoute(userLocation[0], userLocation[1], feat.lat, feat.lng);
     }
   }, [userLocation, onRoute]);
 
-  const clearRouting = () => {
+  const clearRouting = useCallback(() => {
     setDestination('');
+    setSelectedDest(null);
     onClearRoute();
-  };
+  }, [onClearRoute]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.round(seconds / 60);
@@ -92,12 +130,16 @@ export default function RoutingPanel({
       </Button>
 
       {/* Destination search */}
-      <div className="relative">
+      <div className="relative" ref={dropdownRef}>
         <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           value={destination}
-          onChange={e => { setDestination(e.target.value); setShowResults(true); }}
-          onFocus={() => setShowResults(true)}
+          onChange={e => {
+            setDestination(e.target.value);
+            setSelectedDest(null);
+            setShowResults(true);
+          }}
+          onFocus={() => { if (destination.trim() && !selectedDest) setShowResults(true); }}
           placeholder="Search destination..."
           className="pl-8 pr-8 h-8 text-xs"
         />
@@ -128,12 +170,19 @@ export default function RoutingPanel({
         <p className="text-[10px] text-muted-foreground">Tap "Get My Location" first, then search for a destination.</p>
       )}
 
+      {/* Selected destination info */}
+      {selectedDest && !routeResult && userLocation && (
+        <div className="rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+          Calculating route to {selectedDest.name}...
+        </div>
+      )}
+
       {/* Route result */}
       {routeResult && (
         <div className="rounded-md bg-muted/50 p-2.5 space-y-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <Route className="h-3.5 w-3.5 text-primary" />
-            Route Found
+            Route to {selectedDest?.name || 'Destination'}
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
@@ -146,20 +195,4 @@ export default function RoutingPanel({
       )}
     </div>
   );
-}
-
-function getBounds(geometry: GeoJSON.Geometry) {
-  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-  const processCoords = (coords: any) => {
-    if (typeof coords[0] === 'number') {
-      minLng = Math.min(minLng, coords[0]);
-      maxLng = Math.max(maxLng, coords[0]);
-      minLat = Math.min(minLat, coords[1]);
-      maxLat = Math.max(maxLat, coords[1]);
-    } else {
-      coords.forEach(processCoords);
-    }
-  };
-  processCoords((geometry as any).coordinates);
-  return { minLat, maxLat, minLng, maxLng };
 }
