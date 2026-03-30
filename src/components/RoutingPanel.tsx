@@ -67,7 +67,8 @@ export default function RoutingPanel({
       fc.features.forEach(f => {
         if (!f.geometry) return;
         const p = f.properties || {};
-        const name = p[cfg.nameKey] || p.Name || p.name || p.NAME || cfg.label;
+        const rawName = p[cfg.nameKey] || p.Name || p.name || p.NAME || cfg.label;
+        const name = typeof rawName === 'string' ? rawName : String(rawName ?? cfg.label);
         let lat: number, lng: number;
         if (f.geometry.type === 'Point') {
           const coords = (f.geometry as GeoJSON.Point).coordinates;
