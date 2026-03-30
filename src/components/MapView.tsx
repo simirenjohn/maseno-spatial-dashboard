@@ -335,9 +335,15 @@ export default function MapView({
     routeLayerRef.current.clearLayers();
 
     if (routeResult && routeResult.path.length > 1) {
-      const polyline = L.polyline(routeResult.path, {
-        color: '#2563eb', weight: 5, opacity: 0.8, dashArray: '10, 6',
+      // Shadow line for depth
+      const shadow = L.polyline(routeResult.path, {
+        color: '#1e40af', weight: 8, opacity: 0.3,
       });
+      // Main route line - solid blue like Google Maps
+      const polyline = L.polyline(routeResult.path, {
+        color: '#4285F4', weight: 5, opacity: 0.9,
+      });
+      routeLayerRef.current.addLayer(shadow);
       routeLayerRef.current.addLayer(polyline);
       map.flyToBounds(polyline.getBounds(), { padding: [60, 60], duration: 0.8 });
     }
@@ -369,11 +375,15 @@ export default function MapView({
 
     if (destinationLocation) {
       const icon = L.divIcon({
-        html: `<div style="width:14px;height:14px;background:#dc2626;border:3px solid white;border-radius:50%;box-shadow:0 0 8px rgba(220,38,38,0.5);"></div>`,
-        className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+        html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="32" height="44">
+          <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#dc2626" stroke="white" stroke-width="1.5"/>
+          <circle cx="12" cy="11" r="5" fill="white" opacity="0.9"/>
+          <text x="12" y="14" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="bold">B</text>
+        </svg>`,
+        className: '', iconSize: [32, 44], iconAnchor: [16, 44], popupAnchor: [0, -44],
       });
       destMarkerRef.current = L.marker(destinationLocation, { icon }).addTo(map);
-      destMarkerRef.current.bindPopup('🏁 Destination');
+      destMarkerRef.current.bindPopup('🏁 Destination').openPopup();
     }
   }, [destinationLocation]);
 
