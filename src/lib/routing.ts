@@ -106,7 +106,84 @@ export class RoadGraph {
         }
       }
     }
+    // Connect disconnected components by bridging nearby nodes
+    this._connectComponents();
     console.log(`Road graph built: ${this.nodes.size} nodes`);
+  }
+
+  private _connectComponents() {
+    // Find connected components via BFS
+    const visited = new Set<string>();
+    const componentOf = new Map<string, number>();
+    const components: string[][] = [];
+
+    for (const key of this.nodes.keys()) {
+      if (visited.has(key)) continue;
+      const comp: string[] = [];
+      const queue = [key];
+      const compIdx = components.length;
+      while (queue.length > 0) {
+        const n = queue.pop()!;
+        if (visited.has(n)) continue;
+        visited.add(n);
+        comp.push(n);
+        componentOf.set(n, compIdx);
+        const node = this.nodes.get(n);
+        if (node) {
+          for (const e of node.edges) {
+            if (!visited.has(e.nodeId)) queue.push(e.nodeId);
+          }
+        }
+      }
+      components.push(comp);
+    }
+
+    if (components.length <= 1) return;
+
+    // For each smaller component, find the nearest node in the largest component and bridge them
+    // Also bridge any remaining disconnected pairs within 200m
+    const largest = components[0];
+    const BRIDGE_THRESHOLD = 200; // meters
+
+    for (let ci = 1; ci < components.length; ci++) {
+      const comp = components[ci];
+      let bestDist = Infinity;
+      let bestA: string | null = null;
+      let bestB: string | null = null;
+
+      // Sample up to 20 nodes from smaller component for speed
+      const sample = comp.length <= 20 ? comp : comp.filter((_, i) => i % Math.ceil(comp.length / 20) === 0);
+
+      for (const aKey of sample) {
+        const aNode = this.nodes.get(aKey)!;
+        // Search all nodes not in same component
+        for (const bKey of largest.length <= 200 ? largest : largest.filter((_, i) => i % Math.ceil(largest.length / 200) === 0)) {
+          const bNode = this.nodes.get(bKey)!;
+          const d = haversine(aNode.lat, aNode.lng, bNode.lat, bNode.lng);
+          if (d < bestDist) {
+            bestDist = d;
+            bestA = aKey;
+            bestB = bKey;
+          }
+        }
+      }
+
+      // Bridge if within threshold, or always bridge to avoid disconnected routes
+      if (bestA && bestB && bestDist < BRIDGE_THRESHOLD) {
+        const aNode = this.nodes.get(bestA)!;
+        const bNode = this.nodes.get(bestB)!;
+        aNode.edges.push({ nodeId: bestB, weight: bestDist });
+        bNode.edges.push({ nodeId: bestA, weight: bestDist });
+      } else if (bestA && bestB) {
+        // Even if far, connect it so routing doesn't fail
+        const aNode = this.nodes.get(bestA)!;
+        const bNode = this.nodes.get(bestB)!;
+        aNode.edges.push({ nodeId: bestB, weight: bestDist });
+        bNode.edges.push({ nodeId: bestA, weight: bestDist });
+      }
+    }
+
+    console.log(`Bridged ${components.length - 1} disconnected components`);
   }
 
   findNearest(lat: number, lng: number, maxDist = Infinity): string | null {
