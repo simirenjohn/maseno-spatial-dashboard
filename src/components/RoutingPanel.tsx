@@ -87,7 +87,7 @@ export default function RoutingPanel({
   const searchResults = useMemo(() => {
     if (!destination.trim()) return [];
     const q = destination.toLowerCase();
-    return allFeatures.filter(f => f.name.toLowerCase().includes(q)).slice(0, 10);
+    return allFeatures.filter(f => typeof f.name === 'string' && f.name.toLowerCase().includes(q)).slice(0, 10);
   }, [destination, allFeatures]);
 
   const selectDestination = useCallback((feat: FeatureItem) => {
