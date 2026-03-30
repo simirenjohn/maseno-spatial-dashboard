@@ -335,9 +335,15 @@ export default function MapView({
     routeLayerRef.current.clearLayers();
 
     if (routeResult && routeResult.path.length > 1) {
-      const polyline = L.polyline(routeResult.path, {
-        color: '#2563eb', weight: 5, opacity: 0.8, dashArray: '10, 6',
+      // Shadow line for depth
+      const shadow = L.polyline(routeResult.path, {
+        color: '#1e40af', weight: 8, opacity: 0.3,
       });
+      // Main route line - solid blue like Google Maps
+      const polyline = L.polyline(routeResult.path, {
+        color: '#4285F4', weight: 5, opacity: 0.9,
+      });
+      routeLayerRef.current.addLayer(shadow);
       routeLayerRef.current.addLayer(polyline);
       map.flyToBounds(polyline.getBounds(), { padding: [60, 60], duration: 0.8 });
     }
