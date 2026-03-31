@@ -1,0 +1,20 @@
+{
+"type": "FeatureCollection",
+"name": "waste management",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 6, "Waste type": "dump site", "Condition": "overflowing" }, "geometry": { "type": "Point", "coordinates": [ 34.592435581224457, -0.005303715977553 ] } },
+{ "type": "Feature", "properties": { "id": 7, "Waste type": "dump site", "Condition": "partial" }, "geometry": { "type": "Point", "coordinates": [ 34.592637409071095, 0.001347935500863 ] } },
+{ "type": "Feature", "properties": { "id": 8, "Waste type": "dump site", "Condition": "full" }, "geometry": { "type": "Point", "coordinates": [ 34.594177739385465, -0.008697643115431 ] } },
+{ "type": "Feature", "properties": { "id": 9, "Waste type": "dump site", "Condition": "empty" }, "geometry": { "type": "Point", "coordinates": [ 34.596500616933476, -0.008487147817605 ] } },
+{ "type": "Feature", "properties": { "id": 1, "Waste type": "bin", "Condition": "empty" }, "geometry": { "type": "Point", "coordinates": [ 34.594447668652769, -0.006855190151963 ] } },
+{ "type": "Feature", "properties": { "id": 10, "Waste type": "dump site", "Condition": "partial" }, "geometry": { "type": "Point", "coordinates": [ 34.596748258463123, -0.005072171148289 ] } },
+{ "type": "Feature", "properties": { "id": 2, "Waste type": "bin", "Condition": "partial" }, "geometry": { "type": "Point", "coordinates": [ 34.603405481883655, -0.005743279690619 ] } },
+{ "type": "Feature", "properties": { "id": 11, "Waste type": "dump site", "Condition": "overflowing" }, "geometry": { "type": "Point", "coordinates": [ 34.608363265307027, -0.001347642549013 ] } },
+{ "type": "Feature", "properties": { "id": 12, "Waste type": "dump site", "Condition": "overflowing" }, "geometry": { "type": "Point", "coordinates": [ 34.608665387973183, -0.001298114243098 ] } },
+{ "type": "Feature", "properties": { "id": 3, "Waste type": "bin", "Condition": "full" }, "geometry": { "type": "Point", "coordinates": [ 34.609442982376265, -0.002348733432047 ] } },
+{ "type": "Feature", "properties": { "id": 13, "Waste type": "dump site", "Condition": "empty" }, "geometry": { "type": "Point", "coordinates": [ 34.606642775779854, -0.006831045102995 ] } },
+{ "type": "Feature", "properties": { "id": 4, "Waste type": "bin", "Condition": "empty" }, "geometry": { "type": "Point", "coordinates": [ 34.610560464778764, -0.005414535561582 ] } },
+{ "type": "Feature", "properties": { "id": 5, "Waste type": "bin", "Condition": "full" }, "geometry": { "type": "Point", "coordinates": [ 34.604001678866254, -0.003851917514715 ] } }
+]
+}

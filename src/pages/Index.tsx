@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useGeoData, LAYER_CONFIGS } from '@/hooks/useGeoData';
 import MapView from '@/components/MapView';
 import Sidebar from '@/components/Sidebar';
@@ -6,7 +6,6 @@ import UserGuide from '@/components/UserGuide';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu, X } from 'lucide-react';
 import { RoadGraph, type RouteResult } from '@/lib/routing';
-import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 export default function Index() {
@@ -24,6 +23,8 @@ export default function Index() {
   const [destinationLocation, setDestinationLocation] = useState<[number, number] | null>(null);
   const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
   const roadGraphRef = useRef<RoadGraph | null>(null);
 
   // Load road network
@@ -36,6 +37,15 @@ export default function Index() {
         roadGraphRef.current = graph;
       })
       .catch(err => console.error('Failed to load road network:', err));
+  }, []);
+
+  // Cleanup tracking on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
   }, []);
 
   const toggleLayer = useCallback((id: string) => {
@@ -52,6 +62,7 @@ export default function Index() {
     setFilteredFeatures(filtered);
   }, []);
 
+  // One-time high accuracy location
   const handleLocateUser = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
@@ -60,16 +71,39 @@ export default function Index() {
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserLocation([lat, lng]);
         setIsLocating(false);
-        toast.success('Location found!');
+        toast.success(`Location found! ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
       },
       (err) => {
         setIsLocating(false);
-        toast.error('Could not get your location. Please enable location services.');
+        toast.error('Enable location services: ' + err.message);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
+  }, []);
+
+  // Continuous tracking with high accuracy
+  const handleStartTracking = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setIsTracking(true);
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+      },
+      () => toast.error('Tracking error'),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }, []);
+
+  const handleStopTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsTracking(false);
   }, []);
 
   const handleRoute = useCallback((fromLat: number, fromLng: number, toLat: number, toLng: number) => {
@@ -132,6 +166,9 @@ export default function Index() {
           userLocation={userLocation}
           routeResult={routeResult}
           isLocating={isLocating}
+          isTracking={isTracking}
+          onStartTracking={handleStartTracking}
+          onStopTracking={handleStopTracking}
         />
       </div>
 

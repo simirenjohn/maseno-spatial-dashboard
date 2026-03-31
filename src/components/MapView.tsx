@@ -1,8 +1,8 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LAYER_CONFIGS, type GeoDataState, type ChildTables } from '@/hooks/useGeoData';
-import { RoadGraph, type RouteResult } from '@/lib/routing';
+import type { RouteResult } from '@/lib/routing';
 
 const BASEMAPS = {
   osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap contributors', label: 'OSM' },
@@ -14,7 +14,15 @@ const BASEMAPS = {
 const BUILDING_PHOTOS: Record<string, string> = {
   'Administarion office': '/images/administration_office.jpg',
   'NEW LIBRARY': '/images/new_library.jpg',
+  'CHEMISTRY LAB': '/images/chemistry_lab.jpeg',
 };
+
+// Equator 1 hostel slideshow photos
+const EQUATOR_1_PHOTOS = [
+  { src: '/images/equator_1_room.jpeg', alt: 'Equator 1 Room' },
+  { src: '/images/equator_1_bedding.jpeg', alt: 'Equator 1 Bedding' },
+  { src: '/images/equator_1_shelf.jpeg', alt: 'Equator 1 Shelf/Storage' },
+];
 
 const CLINIC_PHOTO = '/images/university_clinic.jpeg';
 const NL5_PHOTO = '/images/nl5_lecture_hall.jpeg';
@@ -33,8 +41,60 @@ function createSvgIcon(color: string) {
   });
 }
 
+function createWasteIcon(condition: string) {
+  const colors: Record<string, string> = {
+    'empty': '#22c55e',
+    'partial': '#f59e0b',
+    'full': '#ef4444',
+    'overflowing': '#7f1d1d',
+  };
+  const color = colors[condition?.toLowerCase()] || '#78350f';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 28" width="24" height="28">
+    <rect x="3" y="6" width="18" height="18" rx="2" fill="${color}" stroke="white" stroke-width="1.5"/>
+    <rect x="7" y="2" width="10" height="6" rx="1" fill="${color}" stroke="white" stroke-width="1"/>
+    <line x1="8" y1="11" x2="8" y2="21" stroke="white" stroke-width="1.5"/>
+    <line x1="12" y1="11" x2="12" y2="21" stroke="white" stroke-width="1.5"/>
+    <line x1="16" y1="11" x2="16" y2="21" stroke="white" stroke-width="1.5"/>
+  </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [24, 28], iconAnchor: [12, 28], popupAnchor: [0, -28] });
+}
+
+function createWifiIcon() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
+    <circle cx="14" cy="14" r="13" fill="#0ea5e9" stroke="white" stroke-width="1.5"/>
+    <path d="M14 20a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="white"/>
+    <path d="M10 17.5a5.5 5.5 0 018 0" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M7 14.5a9 9 0 0114 0" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -28] });
+}
+
 function photoHtml(src: string, alt: string): string {
   return `<img src="${src}" alt="${alt}" style="width:100%;max-height:160px;object-fit:cover;border-radius:6px;margin:8px 0 4px;" onerror="this.style.display='none'" />`;
+}
+
+function slideshowHtml(photos: { src: string; alt: string }[], slideshowId: string): string {
+  if (photos.length === 0) return '';
+  return `
+    <div id="${slideshowId}" style="position:relative;width:100%;margin:8px 0 4px;">
+      ${photos.map((p, i) => `
+        <img src="${p.src}" alt="${p.alt}" 
+          class="slideshow-img" 
+          data-slide-idx="${i}"
+          style="width:100%;max-height:160px;object-fit:cover;border-radius:6px;display:${i === 0 ? 'block' : 'none'};" 
+          onerror="this.style.display='none'" />
+      `).join('')}
+      <div style="display:flex;justify-content:center;gap:4px;margin-top:4px;">
+        ${photos.map((_, i) => `
+          <button onclick="(function(){
+            var c=document.getElementById('${slideshowId}');
+            c.querySelectorAll('.slideshow-img').forEach(function(img){img.style.display='none';});
+            c.querySelector('[data-slide-idx=\\'${i}\\']').style.display='block';
+            c.querySelectorAll('.slide-dot').forEach(function(d,j){d.style.background=j===${i}?'#2563eb':'#ccc';});
+          })()" class="slide-dot" style="width:8px;height:8px;border-radius:50%;border:none;cursor:pointer;background:${i === 0 ? '#2563eb' : '#ccc'};"></button>
+        `).join('')}
+      </div>
+    </div>`;
 }
 
 function getPopupContent(
@@ -57,8 +117,30 @@ function getPopupContent(
         <tr><td>Visiting Eve</td><td>${p['visit_PM 2'] || '5:00PM–6:00PM'}</td></tr>
         <tr><td>Population</td><td>Staff, Dependants, Students, Community</td></tr>
         <tr><td>Services</td><td style="font-size:11px;">${p.SERVICES || 'Outpatient, Inpatient, HIV Care, Laboratory, Pharmacy, Counselling, Antenatal, MCH, Family Planning, Maternity, Emergency, Ambulance'}</td></tr>
-        <tr><td>Client Rights</td><td style="font-size:11px;">Quality Service, Right to Information, Complain/Compliment, Privacy, Access</td></tr>
-        <tr><td>Feedback</td><td>Direct Feedback, Suggestion Box, Exit Interviews</td></tr>
+      </table>
+    </div>`;
+  }
+
+  if (layerId === 'waste') {
+    const condColor: Record<string, string> = { 'empty': '#22c55e', 'partial': '#f59e0b', 'full': '#ef4444', 'overflowing': '#7f1d1d' };
+    const cond = (p.Condition || 'unknown').toLowerCase();
+    return `<div class="campus-popup">
+      <h3>🗑️ ${p['Waste type'] || 'Waste Point'}</h3>
+      <span class="badge" style="background:#fef3c7;color:#78350f;">Waste Management</span>
+      <table>
+        <tr><td>Type</td><td>${p['Waste type'] || 'N/A'}</td></tr>
+        <tr><td>Condition</td><td><span style="color:${condColor[cond] || '#666'};font-weight:600;text-transform:capitalize;">${p.Condition || 'N/A'}</span></td></tr>
+      </table>
+    </div>`;
+  }
+
+  if (layerId === 'wifi') {
+    return `<div class="campus-popup">
+      <h3>📶 ${p.wifi_name || 'WiFi Point'}</h3>
+      <span class="badge" style="background:#e0f2fe;color:#0369a1;">WiFi</span>
+      <table>
+        <tr><td>Network</td><td>${p.wifi_name || 'N/A'}</td></tr>
+        <tr><td>Password</td><td><code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:12px;">${p.PASSWORD || 'N/A'}</code></td></tr>
       </table>
     </div>`;
   }
@@ -77,11 +159,14 @@ function getPopupContent(
     clinic: 'background:#fce4ec;color:#c62828;',
   };
 
-  // Check for building photo
   const buildingPhoto = BUILDING_PHOTOS[name] || '';
+  // Check for Equator 1 hostel slideshow
+  const isEquator1 = typeof name === 'string' && name.toLowerCase().includes('equator') && name.includes('1');
 
   let content = `<div class="campus-popup">`;
-  if (buildingPhoto) {
+  if (isEquator1) {
+    content += slideshowHtml(EQUATOR_1_PHOTOS, 'eq1-slideshow');
+  } else if (buildingPhoto) {
     content += photoHtml(buildingPhoto, name);
   }
   content += `<h3>${name}</h3>
@@ -109,13 +194,9 @@ function getPopupContent(
       </table>`;
     }
   } else if (layerId === 'administration') {
-    content += `<table>
-      <tr><td>Type</td><td>${p.type || 'N/A'}</td></tr>
-    </table>`;
+    content += `<table><tr><td>Type</td><td>${p.type || 'N/A'}</td></tr></table>`;
   } else if (layerId === 'labs') {
-    content += `<table>
-      <tr><td>Capacity</td><td>${p.CAPACITY || 'N/A'}</td></tr>
-    </table>`;
+    content += `<table><tr><td>Capacity</td><td>${p.CAPACITY || 'N/A'}</td></tr></table>`;
   }
 
   content += '</div>';
@@ -145,7 +226,6 @@ function buildRoomTable(childTable: GeoJSON.FeatureCollection, buildingName: str
     rooms.forEach(r => {
       const rp = r.properties || {};
       const roomName = rp[roomNameKey] || 'N/A';
-      // Add NL5 photo inline if it's NL 5
       const isNL5 = roomName === 'NL 5';
       html += `<tr>
         <td style="text-align:left;font-weight:500;">${roomName}${isNL5 ? ' 📷' : ''}</td>
@@ -202,7 +282,7 @@ export default function MapView({
     baseTileRef.current = baseTile;
     routeLayerRef.current.addTo(map);
 
-    // Load study area boundaries (red outline, no fill)
+    // Load study area boundaries
     const studyAreaFiles = [
       '/data/college_campus_study_area.geojson',
       '/data/niles_study_area.geojson',
@@ -278,7 +358,15 @@ export default function MapView({
 
         if (geomType === 'Point') {
           const coords = (feature.geometry as GeoJSON.Point).coordinates;
-          const marker = L.marker([coords[1], coords[0]], { icon: createSvgIcon(cfg.color) });
+          let icon: L.DivIcon;
+          if (cfg.id === 'waste') {
+            icon = createWasteIcon(feature.properties?.Condition);
+          } else if (cfg.id === 'wifi') {
+            icon = createWifiIcon();
+          } else {
+            icon = createSvgIcon(cfg.color);
+          }
+          const marker = L.marker([coords[1], coords[0]], { icon });
           marker.bindPopup(() => getPopupContent(feature, cfg.id, childTables), { maxWidth: 380 });
           group.addLayer(marker);
         } else {
@@ -345,18 +433,16 @@ export default function MapView({
     }
   }, [filteredFeatures, geoData]);
 
-  // Route display
+  // Route display - blue with shadow
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     routeLayerRef.current.clearLayers();
 
     if (routeResult && routeResult.path.length > 1) {
-      // Shadow line for depth
       const shadow = L.polyline(routeResult.path, {
         color: '#1e40af', weight: 8, opacity: 0.3,
       });
-      // Main route line - solid blue like Google Maps
       const polyline = L.polyline(routeResult.path, {
         color: '#4285F4', weight: 5, opacity: 0.9,
       });
@@ -366,7 +452,7 @@ export default function MapView({
     }
   }, [routeResult]);
 
-  // User location marker
+  // User location marker with pulse
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -375,11 +461,14 @@ export default function MapView({
 
     if (userLocation) {
       const icon = L.divIcon({
-        html: `<div style="width:16px;height:16px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 0 8px rgba(37,99,235,0.5);"></div>`,
-        className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+        html: `<div class="pulse-marker-container">
+          <div class="pulse-ring"></div>
+          <div style="width:16px;height:16px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 0 8px rgba(37,99,235,0.5);position:relative;z-index:2;"></div>
+        </div>`,
+        className: '', iconSize: [40, 40], iconAnchor: [20, 20],
       });
-      userMarkerRef.current = L.marker(userLocation, { icon }).addTo(map);
-      userMarkerRef.current.bindPopup('📍 You are here');
+      userMarkerRef.current = L.marker(userLocation, { icon, zIndexOffset: 1000 }).addTo(map);
+      userMarkerRef.current.bindPopup('<b>📍 You are here</b>');
     }
   }, [userLocation]);
 
@@ -399,8 +488,8 @@ export default function MapView({
         </svg>`,
         className: '', iconSize: [32, 44], iconAnchor: [16, 44], popupAnchor: [0, -44],
       });
-      destMarkerRef.current = L.marker(destinationLocation, { icon }).addTo(map);
-      destMarkerRef.current.bindPopup('🏁 Destination').openPopup();
+      destMarkerRef.current = L.marker(destinationLocation, { icon, zIndexOffset: 999 }).addTo(map);
+      destMarkerRef.current.bindPopup('<b>🏁 Destination</b>').openPopup();
     }
   }, [destinationLocation]);
 

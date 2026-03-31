@@ -20,6 +20,9 @@ interface SidebarProps {
   userLocation: [number, number] | null;
   routeResult: RouteResult | null;
   isLocating: boolean;
+  isTracking: boolean;
+  onStartTracking: () => void;
+  onStopTracking: () => void;
 }
 
 interface Filters {
@@ -45,6 +48,7 @@ const DEFAULT_FILTERS: Filters = {
 export default function Sidebar({
   geoData, layerVisibility, onToggleLayer, onSelectFeature, onFilterChange,
   onRoute, onClearRoute, onLocateUser, userLocation, routeResult, isLocating,
+  isTracking, onStartTracking, onStopTracking,
 }: SidebarProps) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -100,10 +104,11 @@ export default function Sidebar({
       fc.features.forEach((f, idx) => {
         const p = f.properties || {};
         const name = p[cfg.nameKey] || p.Name || p.name || p.NAME || '';
+        const nameStr = typeof name === 'string' ? name : String(name);
         const typeVal = p.type || p.TYPE || cfg.label || '';
-        const searchText = `${name} ${typeVal} ${cfg.label}`.toLowerCase();
+        const searchText = `${nameStr} ${typeVal} ${cfg.label}`.toLowerCase();
         if (searchText.includes(q)) {
-          results.push({ layerId: cfg.id, featureIndex: idx, name: name || cfg.label, layerLabel: cfg.label, color: cfg.color });
+          results.push({ layerId: cfg.id, featureIndex: idx, name: nameStr || cfg.label, layerLabel: cfg.label, color: cfg.color });
         }
       });
     });
@@ -331,6 +336,9 @@ export default function Sidebar({
               userLocation={userLocation}
               routeResult={routeResult}
               isLocating={isLocating}
+              isTracking={isTracking}
+              onStartTracking={onStartTracking}
+              onStopTracking={onStopTracking}
             />
           )}
         </div>

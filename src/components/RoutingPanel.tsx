@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { MapPin, Locate, X, Clock, Route } from 'lucide-react';
+import { MapPin, Locate, X, Clock, Route, Radio, StopCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { LAYER_CONFIGS, type GeoDataState } from '@/hooks/useGeoData';
@@ -13,6 +13,9 @@ interface RoutingPanelProps {
   userLocation: [number, number] | null;
   routeResult: RouteResult | null;
   isLocating: boolean;
+  isTracking: boolean;
+  onStartTracking: () => void;
+  onStopTracking: () => void;
 }
 
 interface FeatureItem {
@@ -41,13 +44,13 @@ function getBounds(geometry: GeoJSON.Geometry) {
 
 export default function RoutingPanel({
   geoData, onRoute, onClearRoute, onLocateUser, userLocation, routeResult, isLocating,
+  isTracking, onStartTracking, onStopTracking,
 }: RoutingPanelProps) {
   const [destination, setDestination] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [selectedDest, setSelectedDest] = useState<FeatureItem | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -58,7 +61,6 @@ export default function RoutingPanel({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // All searchable features
   const allFeatures = useMemo(() => {
     const results: FeatureItem[] = [];
     LAYER_CONFIGS.forEach(cfg => {
@@ -130,6 +132,32 @@ export default function RoutingPanel({
         {isLocating ? 'Locating...' : userLocation ? 'Location Found ✓' : 'Get My Location'}
       </Button>
 
+      {/* Tracking buttons */}
+      {userLocation && (
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs h-7"
+            onClick={onStartTracking}
+            disabled={isTracking}
+          >
+            <Radio className="h-3 w-3 mr-1" />
+            {isTracking ? 'Tracking...' : 'Track Me'}
+          </Button>
+          {isTracking && (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="text-xs h-7"
+              onClick={onStopTracking}
+            >
+              <StopCircle className="h-3 w-3 mr-1" /> Stop
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Destination search */}
       <div className="relative" ref={dropdownRef}>
         <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -171,7 +199,6 @@ export default function RoutingPanel({
         <p className="text-[10px] text-muted-foreground">Tap "Get My Location" first, then search for a destination.</p>
       )}
 
-      {/* Selected destination info */}
       {selectedDest && !routeResult && userLocation && (
         <div className="rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
           Calculating route to {selectedDest.name}...
