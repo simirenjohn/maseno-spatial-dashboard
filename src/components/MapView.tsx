@@ -388,6 +388,7 @@ export default function MapView({
             icon = createParkingIcon();
           } else {
             icon = createSvgIcon(cfg.color);
+          }
           const marker = L.marker([coords[1], coords[0]], { icon });
           marker.bindPopup(() => getPopupContent(feature, cfg.id, childTables), { maxWidth: 380 });
           group.addLayer(marker);
