@@ -156,7 +156,17 @@ function getPopupContent(
     </div>`;
   }
 
-  const layerCfg = LAYER_CONFIGS.find(l => l.id === layerId);
+  if (layerId === 'parking') {
+    return `<div class="campus-popup">
+      <h3>🅿️ Parking Spot</h3>
+      <span class="badge" style="background:#eef2ff;color:#4338ca;">Parking</span>
+      <table>
+        <tr><td>Purpose</td><td>${p.PURPOSE || 'Parking space'}</td></tr>
+        <tr><td>ID</td><td>#${p.fid || 'N/A'}</td></tr>
+      </table>
+    </div>`;
+  }
+
   const color = layerCfg?.color || '#666';
   const name = p[layerCfg?.nameKey || 'Name'] || p.Name || p.name || p.NAME || 'Unknown';
 
