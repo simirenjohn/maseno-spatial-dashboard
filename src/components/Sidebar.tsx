@@ -496,7 +496,7 @@ export default function Sidebar({
                           >
                             <MapPin className="h-3 w-3 shrink-0" style={{ color: cfg.color }} />
                             <span className="truncate font-medium">
-                              {cfg.id === 'clinic' ? 'University Clinic' : `${name} #${idx + 1}`}
+                              {cfg.id === 'clinic' ? 'University Clinic' : cfg.id === 'parking' ? `Parking Spot #${idx + 1}` : `${name} #${idx + 1}`}
                             </span>
                           </button>
                         );
