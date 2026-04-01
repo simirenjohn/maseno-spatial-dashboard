@@ -20,6 +20,7 @@ export const LAYER_CONFIGS: LayerConfig[] = [
   { id: 'clinic', label: 'University Clinic', color: '#e11d48', file: '/data/university_clinic.geojson', visible: true, nameKey: 'id' },
   { id: 'waste', label: 'Waste Management', color: '#78350f', file: '/data/waste_management.geojson', visible: true, nameKey: 'Waste type' },
   { id: 'wifi', label: 'WiFi Points', color: '#0ea5e9', file: '/data/wifi_points.geojson', visible: true, nameKey: 'wifi_name' },
+  { id: 'parking', label: 'Parking Spots', color: '#6366f1', file: '/data/parking_spots.geojson', visible: true, nameKey: 'PURPOSE' },
 ];
 
 export interface GeoDataState {

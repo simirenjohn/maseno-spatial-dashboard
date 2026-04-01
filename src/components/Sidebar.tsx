@@ -387,7 +387,7 @@ export default function Sidebar({
           const matchCount = getMatchCount(cfg.id);
           const isVisible = layerVisibility[cfg.id] !== false;
           const items = filteredItems[cfg.id];
-          const showListing = cfg.id === 'workers' || cfg.id === 'clinic';
+          const showListing = cfg.id === 'workers' || cfg.id === 'clinic' || cfg.id === 'parking';
 
           return (
             <div key={cfg.id} className="border-b border-border">
@@ -496,7 +496,7 @@ export default function Sidebar({
                           >
                             <MapPin className="h-3 w-3 shrink-0" style={{ color: cfg.color }} />
                             <span className="truncate font-medium">
-                              {cfg.id === 'clinic' ? 'University Clinic' : `${name} #${idx + 1}`}
+                              {cfg.id === 'clinic' ? 'University Clinic' : cfg.id === 'parking' ? `Parking Spot #${idx + 1}` : `${name} #${idx + 1}`}
                             </span>
                           </button>
                         );

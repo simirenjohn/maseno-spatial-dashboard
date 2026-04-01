@@ -22,6 +22,9 @@ const EQUATOR_1_PHOTOS = [
   { src: '/images/equator_1_room.jpeg', alt: 'Equator 1 Room' },
   { src: '/images/equator_1_bedding.jpeg', alt: 'Equator 1 Bedding' },
   { src: '/images/equator_1_shelf.jpeg', alt: 'Equator 1 Shelf/Storage' },
+  { src: '/images/equator_1_room2.jpeg', alt: 'Equator 1 Study Area' },
+  { src: '/images/equator_1_bedding2.jpeg', alt: 'Equator 1 Bunk Beds' },
+  { src: '/images/equator_1_shelf2.jpeg', alt: 'Equator 1 Storage Cabinet' },
 ];
 
 const CLINIC_PHOTO = '/images/university_clinic.jpeg';
@@ -65,6 +68,14 @@ function createWifiIcon() {
     <path d="M14 20a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="white"/>
     <path d="M10 17.5a5.5 5.5 0 018 0" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
     <path d="M7 14.5a9 9 0 0114 0" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -28] });
+}
+
+function createParkingIcon() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
+    <rect x="2" y="2" width="24" height="24" rx="4" fill="#6366f1" stroke="white" stroke-width="1.5"/>
+    <text x="14" y="20" text-anchor="middle" font-size="18" font-weight="bold" fill="white">P</text>
   </svg>`;
   return L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -28] });
 }
@@ -141,6 +152,17 @@ function getPopupContent(
       <table>
         <tr><td>Network</td><td>${p.wifi_name || 'N/A'}</td></tr>
         <tr><td>Password</td><td><code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:12px;">${p.PASSWORD || 'N/A'}</code></td></tr>
+      </table>
+    </div>`;
+  }
+
+  if (layerId === 'parking') {
+    return `<div class="campus-popup">
+      <h3>🅿️ Parking Spot</h3>
+      <span class="badge" style="background:#eef2ff;color:#4338ca;">Parking</span>
+      <table>
+        <tr><td>Purpose</td><td>${p.PURPOSE || 'Parking space'}</td></tr>
+        <tr><td>ID</td><td>#${p.fid || 'N/A'}</td></tr>
       </table>
     </div>`;
   }
@@ -363,6 +385,8 @@ export default function MapView({
             icon = createWasteIcon(feature.properties?.Condition);
           } else if (cfg.id === 'wifi') {
             icon = createWifiIcon();
+          } else if (cfg.id === 'parking') {
+            icon = createParkingIcon();
           } else {
             icon = createSvgIcon(cfg.color);
           }
