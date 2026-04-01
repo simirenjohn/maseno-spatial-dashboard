@@ -156,6 +156,7 @@ export default function Index() {
       >
         <Sidebar
           geoData={data}
+          childTables={childTables}
           layerVisibility={layerVisibility}
           onToggleLayer={toggleLayer}
           onSelectFeature={selectFeature}
