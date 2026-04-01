@@ -167,6 +167,7 @@ function getPopupContent(
     </div>`;
   }
 
+  const layerCfg = LAYER_CONFIGS.find(l => l.id === layerId);
   const color = layerCfg?.color || '#666';
   const name = p[layerCfg?.nameKey || 'Name'] || p.Name || p.name || p.NAME || 'Unknown';
 
