@@ -70,14 +70,14 @@ function createWifiIcon() {
     <path d="M7 14.5a9 9 0 0114 0" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
   </svg>`;
   return L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -28] });
+}
+
 function createParkingIcon() {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
     <rect x="2" y="2" width="24" height="24" rx="4" fill="#6366f1" stroke="white" stroke-width="1.5"/>
     <text x="14" y="20" text-anchor="middle" font-size="18" font-weight="bold" fill="white">P</text>
   </svg>`;
   return L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -28] });
-}
-
 }
 
 function photoHtml(src: string, alt: string): string {
