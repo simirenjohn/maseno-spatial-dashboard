@@ -387,7 +387,7 @@ export default function Sidebar({
           const matchCount = getMatchCount(cfg.id);
           const isVisible = layerVisibility[cfg.id] !== false;
           const items = filteredItems[cfg.id];
-          const showListing = cfg.id === 'workers' || cfg.id === 'clinic';
+          const showListing = cfg.id === 'workers' || cfg.id === 'clinic' || cfg.id === 'parking';
 
           return (
             <div key={cfg.id} className="border-b border-border">
