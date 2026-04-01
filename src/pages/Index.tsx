@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import UserGuide from '@/components/UserGuide';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu, X } from 'lucide-react';
+import ReportIssueModal from '@/components/ReportIssueModal';
 import { RoadGraph, type RouteResult } from '@/lib/routing';
 import { toast } from 'sonner';
 
@@ -156,6 +157,7 @@ export default function Index() {
       >
         <Sidebar
           geoData={data}
+          childTables={childTables}
           layerVisibility={layerVisibility}
           onToggleLayer={toggleLayer}
           onSelectFeature={selectFeature}
@@ -177,6 +179,21 @@ export default function Index() {
       )}
 
       <div className="flex-1 relative">
+        {/* Report Issue button - top right */}
+        <div className="absolute top-3 right-14 z-[1000]">
+          <ReportIssueModal facilityLocation={
+            selectedFeature && data[selectedFeature.layerId]?.features[selectedFeature.featureIndex]?.geometry
+              ? (() => {
+                  const geom = data[selectedFeature.layerId].features[selectedFeature.featureIndex].geometry;
+                  if (geom.type === 'Point') {
+                    const c = (geom as GeoJSON.Point).coordinates;
+                    return [c[1], c[0]] as [number, number];
+                  }
+                  return null;
+                })()
+              : null
+          } />
+        </div>
         <MapView
           geoData={data}
           childTables={childTables}
