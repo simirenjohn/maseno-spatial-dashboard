@@ -22,6 +22,9 @@ const EQUATOR_1_PHOTOS = [
   { src: '/images/equator_1_room.jpeg', alt: 'Equator 1 Room' },
   { src: '/images/equator_1_bedding.jpeg', alt: 'Equator 1 Bedding' },
   { src: '/images/equator_1_shelf.jpeg', alt: 'Equator 1 Shelf/Storage' },
+  { src: '/images/equator_1_room2.jpeg', alt: 'Equator 1 Study Area' },
+  { src: '/images/equator_1_bedding2.jpeg', alt: 'Equator 1 Bunk Beds' },
+  { src: '/images/equator_1_shelf2.jpeg', alt: 'Equator 1 Storage Cabinet' },
 ];
 
 const CLINIC_PHOTO = '/images/university_clinic.jpeg';
