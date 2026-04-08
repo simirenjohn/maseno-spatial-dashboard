@@ -149,8 +149,8 @@ function getPopupContent(
         <tr><td>Type</td><td>${p['Waste type'] || 'N/A'}</td></tr>
         <tr><td>Condition</td><td><span style="color:${condColor[cond] || '#666'};font-weight:600;text-transform:capitalize;">${p.Condition || 'N/A'}</span></td></tr>
       </table>
+      ${reportButtonHtml(p['Waste type'] || 'Waste Point', 'waste')}
     </div>`;
-  }
 
   if (layerId === 'wifi') {
     return `<div class="campus-popup">
