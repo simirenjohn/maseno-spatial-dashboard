@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LAYER_CONFIGS, type GeoDataState, type ChildTables } from '@/hooks/useGeoData';
 import type { RouteResult } from '@/lib/routing';
+import ReportIssueModal from '@/components/ReportIssueModal';
 
 const BASEMAPS = {
   osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap contributors', label: 'OSM' },
@@ -108,6 +109,11 @@ function slideshowHtml(photos: { src: string; alt: string }[], slideshowId: stri
     </div>`;
 }
 
+function reportButtonHtml(facilityName: string, facilityType: string): string {
+  const escapedName = facilityName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  return `<button onclick="window.dispatchEvent(new CustomEvent('open-report',{detail:{name:'${escapedName}',type:'${facilityType}'}}))" style="margin-top:8px;width:100%;padding:6px 12px;font-size:12px;font-weight:600;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">⚠️ Report Issue</button>`;
+}
+
 function getPopupContent(
   feature: GeoJSON.Feature,
   layerId: string,
@@ -129,6 +135,7 @@ function getPopupContent(
         <tr><td>Population</td><td>Staff, Dependants, Students, Community</td></tr>
         <tr><td>Services</td><td style="font-size:11px;">${p.SERVICES || 'Outpatient, Inpatient, HIV Care, Laboratory, Pharmacy, Counselling, Antenatal, MCH, Family Planning, Maternity, Emergency, Ambulance'}</td></tr>
       </table>
+      ${reportButtonHtml('Maseno University Health Services', 'clinic')}
     </div>`;
   }
 
@@ -142,8 +149,8 @@ function getPopupContent(
         <tr><td>Type</td><td>${p['Waste type'] || 'N/A'}</td></tr>
         <tr><td>Condition</td><td><span style="color:${condColor[cond] || '#666'};font-weight:600;text-transform:capitalize;">${p.Condition || 'N/A'}</span></td></tr>
       </table>
+      ${reportButtonHtml(p['Waste type'] || 'Waste Point', 'waste')}
     </div>`;
-  }
 
   if (layerId === 'wifi') {
     return `<div class="campus-popup">
@@ -153,8 +160,8 @@ function getPopupContent(
         <tr><td>Network</td><td>${p.wifi_name || 'N/A'}</td></tr>
         <tr><td>Password</td><td><code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:12px;">${p.PASSWORD || 'N/A'}</code></td></tr>
       </table>
+      ${reportButtonHtml(p.wifi_name || 'WiFi Point', 'wifi')}
     </div>`;
-  }
 
   if (layerId === 'parking') {
     return `<div class="campus-popup">
@@ -164,8 +171,8 @@ function getPopupContent(
         <tr><td>Purpose</td><td>${p.PURPOSE || 'Parking space'}</td></tr>
         <tr><td>ID</td><td>#${p.fid || 'N/A'}</td></tr>
       </table>
+      ${reportButtonHtml(p.PURPOSE || 'Parking Spot', 'parking')}
     </div>`;
-  }
 
   const layerCfg = LAYER_CONFIGS.find(l => l.id === layerId);
   const color = layerCfg?.color || '#666';
@@ -221,6 +228,7 @@ function getPopupContent(
     content += `<table><tr><td>Capacity</td><td>${p.CAPACITY || 'N/A'}</td></tr></table>`;
   }
 
+  content += reportButtonHtml(name, layerId);
   content += '</div>';
   return content;
 }
@@ -286,6 +294,21 @@ export default function MapView({
   const routeLayerRef = useRef<L.LayerGroup>(L.layerGroup());
   const userMarkerRef = useRef<L.Marker | null>(null);
   const destMarkerRef = useRef<L.Marker | null>(null);
+
+  // Report modal state
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportFacility, setReportFacility] = useState({ name: '', type: '' });
+
+  // Listen for report button clicks from popups
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setReportFacility({ name: detail.name, type: detail.type });
+      setReportOpen(true);
+    };
+    window.addEventListener('open-report', handler);
+    return () => window.removeEventListener('open-report', handler);
+  }, []);
 
   // Initialize map
   useEffect(() => {
@@ -517,5 +540,15 @@ export default function MapView({
     }
   }, [destinationLocation]);
 
-  return <div ref={mapContainerRef} className="w-full h-full" />;
+  return (
+    <>
+      <div ref={mapContainerRef} className="w-full h-full" />
+      <ReportIssueModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        facilityName={reportFacility.name}
+        facilityType={reportFacility.type}
+      />
+    </>
+  );
 }
