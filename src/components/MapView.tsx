@@ -540,5 +540,15 @@ export default function MapView({
     }
   }, [destinationLocation]);
 
-  return <div ref={mapContainerRef} className="w-full h-full" />;
+  return (
+    <>
+      <div ref={mapContainerRef} className="w-full h-full" />
+      <ReportIssueModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        facilityName={reportFacility.name}
+        facilityType={reportFacility.type}
+      />
+    </>
+  );
 }
