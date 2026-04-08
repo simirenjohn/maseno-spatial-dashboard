@@ -109,6 +109,11 @@ function slideshowHtml(photos: { src: string; alt: string }[], slideshowId: stri
     </div>`;
 }
 
+function reportButtonHtml(facilityName: string, facilityType: string): string {
+  const escapedName = facilityName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  return `<button onclick="window.dispatchEvent(new CustomEvent('open-report',{detail:{name:'${escapedName}',type:'${facilityType}'}}))" style="margin-top:8px;width:100%;padding:6px 12px;font-size:12px;font-weight:600;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">⚠️ Report Issue</button>`;
+}
+
 function getPopupContent(
   feature: GeoJSON.Feature,
   layerId: string,
