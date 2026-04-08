@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import UserGuide from '@/components/UserGuide';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu, X } from 'lucide-react';
-import ReportIssueModal from '@/components/ReportIssueModal';
+
 import { RoadGraph, type RouteResult } from '@/lib/routing';
 import { toast } from 'sonner';
 
