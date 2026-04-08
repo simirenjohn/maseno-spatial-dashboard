@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LAYER_CONFIGS, type GeoDataState, type ChildTables } from '@/hooks/useGeoData';
 import type { RouteResult } from '@/lib/routing';
+import ReportIssueModal from '@/components/ReportIssueModal';
 
 const BASEMAPS = {
   osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap contributors', label: 'OSM' },
