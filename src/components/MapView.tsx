@@ -135,6 +135,7 @@ function getPopupContent(
         <tr><td>Population</td><td>Staff, Dependants, Students, Community</td></tr>
         <tr><td>Services</td><td style="font-size:11px;">${p.SERVICES || 'Outpatient, Inpatient, HIV Care, Laboratory, Pharmacy, Counselling, Antenatal, MCH, Family Planning, Maternity, Emergency, Ambulance'}</td></tr>
       </table>
+      ${reportButtonHtml('Maseno University Health Services', 'clinic')}
     </div>`;
   }
 
