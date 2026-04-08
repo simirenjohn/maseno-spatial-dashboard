@@ -228,6 +228,7 @@ function getPopupContent(
     content += `<table><tr><td>Capacity</td><td>${p.CAPACITY || 'N/A'}</td></tr></table>`;
   }
 
+  content += reportButtonHtml(name, layerId);
   content += '</div>';
   return content;
 }
