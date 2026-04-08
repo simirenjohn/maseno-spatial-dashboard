@@ -171,8 +171,8 @@ function getPopupContent(
         <tr><td>Purpose</td><td>${p.PURPOSE || 'Parking space'}</td></tr>
         <tr><td>ID</td><td>#${p.fid || 'N/A'}</td></tr>
       </table>
+      ${reportButtonHtml(p.PURPOSE || 'Parking Spot', 'parking')}
     </div>`;
-  }
 
   const layerCfg = LAYER_CONFIGS.find(l => l.id === layerId);
   const color = layerCfg?.color || '#666';
