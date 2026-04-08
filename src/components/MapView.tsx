@@ -160,8 +160,8 @@ function getPopupContent(
         <tr><td>Network</td><td>${p.wifi_name || 'N/A'}</td></tr>
         <tr><td>Password</td><td><code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:12px;">${p.PASSWORD || 'N/A'}</code></td></tr>
       </table>
+      ${reportButtonHtml(p.wifi_name || 'WiFi Point', 'wifi')}
     </div>`;
-  }
 
   if (layerId === 'parking') {
     return `<div class="campus-popup">
