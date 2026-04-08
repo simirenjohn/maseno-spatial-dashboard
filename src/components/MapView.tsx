@@ -295,6 +295,21 @@ export default function MapView({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const destMarkerRef = useRef<L.Marker | null>(null);
 
+  // Report modal state
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportFacility, setReportFacility] = useState({ name: '', type: '' });
+
+  // Listen for report button clicks from popups
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setReportFacility({ name: detail.name, type: detail.type });
+      setReportOpen(true);
+    };
+    window.addEventListener('open-report', handler);
+    return () => window.removeEventListener('open-report', handler);
+  }, []);
+
   // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
