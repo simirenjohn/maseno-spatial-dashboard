@@ -151,6 +151,7 @@ function getPopupContent(
       </table>
       ${reportButtonHtml(p['Waste type'] || 'Waste Point', 'waste')}
     </div>`;
+  }
 
   if (layerId === 'wifi') {
     return `<div class="campus-popup">
