@@ -163,6 +163,7 @@ function getPopupContent(
       </table>
       ${reportButtonHtml(p.wifi_name || 'WiFi Point', 'wifi')}
     </div>`;
+  }
 
   if (layerId === 'parking') {
     return `<div class="campus-popup">
