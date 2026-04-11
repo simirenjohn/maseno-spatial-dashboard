@@ -151,6 +151,7 @@ function getPopupContent(
       </table>
       ${reportButtonHtml(p['Waste type'] || 'Waste Point', 'waste')}
     </div>`;
+  }
 
   if (layerId === 'wifi') {
     return `<div class="campus-popup">
@@ -162,6 +163,7 @@ function getPopupContent(
       </table>
       ${reportButtonHtml(p.wifi_name || 'WiFi Point', 'wifi')}
     </div>`;
+  }
 
   if (layerId === 'parking') {
     return `<div class="campus-popup">
@@ -173,6 +175,7 @@ function getPopupContent(
       </table>
       ${reportButtonHtml(p.PURPOSE || 'Parking Spot', 'parking')}
     </div>`;
+  }
 
   const layerCfg = LAYER_CONFIGS.find(l => l.id === layerId);
   const color = layerCfg?.color || '#666';
