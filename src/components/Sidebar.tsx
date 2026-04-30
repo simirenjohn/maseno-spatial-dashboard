@@ -19,6 +19,7 @@ interface SidebarProps {
   onClearRoute: () => void;
   onLocateUser: () => void;
   userLocation: [number, number] | null;
+  locationAccuracy: number | null;
   routeResult: RouteResult | null;
   isLocating: boolean;
   isTracking: boolean;
@@ -52,7 +53,7 @@ const DEFAULT_FILTERS: Filters = {
 
 export default function Sidebar({
   geoData, childTables, layerVisibility, onToggleLayer, onSelectFeature, onFilterChange,
-  onRoute, onClearRoute, onLocateUser, userLocation, routeResult, isLocating,
+  onRoute, onClearRoute, onLocateUser, userLocation, locationAccuracy, routeResult, isLocating,
   isTracking, onStartTracking, onStopTracking,
 }: SidebarProps) {
   const [search, setSearch] = useState('');
