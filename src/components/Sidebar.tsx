@@ -380,13 +380,13 @@ export default function Sidebar({
 
       {/* Layer list with filters */}
       <div className="flex-1 overflow-y-auto sidebar-scroll">
-        {LAYER_CONFIGS.map(cfg => {
+        {LAYER_CONFIGS.filter(c => c.id !== 'workers').map(cfg => {
           const isExpanded = expandedLayers[cfg.id] || false;
           const featureCount = geoData[cfg.id]?.features?.length || 0;
           const matchCount = getMatchCount(cfg.id);
           const isVisible = layerVisibility[cfg.id] !== false;
           const items = filteredItems[cfg.id];
-          const showListing = cfg.id === 'workers' || cfg.id === 'clinic' || cfg.id === 'parking';
+          const showListing = cfg.id === 'clinic' || cfg.id === 'parking' || cfg.id === 'religious';
 
           return (
             <div key={cfg.id} className="border-b border-border">
