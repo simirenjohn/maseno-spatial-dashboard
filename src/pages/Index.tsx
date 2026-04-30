@@ -109,6 +109,7 @@ export default function Index() {
         navigator.geolocation.clearWatch(watchId);
         if (best) {
           setUserLocation([best.coords.latitude, best.coords.longitude]);
+          setLocationAccuracy(best.coords.accuracy);
           toast.success(`Location found (±${Math.round(best.coords.accuracy)}m)`);
         }
         setIsLocating(false);
