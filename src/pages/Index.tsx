@@ -21,6 +21,7 @@ export default function Index() {
 
   // Routing state
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [destinationLocation, setDestinationLocation] = useState<[number, number] | null>(null);
   const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -85,6 +86,7 @@ export default function Index() {
             const lat = best.coords.latitude;
             const lng = best.coords.longitude;
             setUserLocation([lat, lng]);
+            setLocationAccuracy(best.coords.accuracy);
             setIsLocating(false);
             toast.success(`Location found (±${Math.round(best.coords.accuracy)}m): ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
           } else {
@@ -107,6 +109,7 @@ export default function Index() {
         navigator.geolocation.clearWatch(watchId);
         if (best) {
           setUserLocation([best.coords.latitude, best.coords.longitude]);
+          setLocationAccuracy(best.coords.accuracy);
           toast.success(`Location found (±${Math.round(best.coords.accuracy)}m)`);
         }
         setIsLocating(false);
@@ -121,6 +124,7 @@ export default function Index() {
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        setLocationAccuracy(pos.coords.accuracy);
       },
       () => toast.error('Tracking error'),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -194,6 +198,7 @@ export default function Index() {
           onClearRoute={handleClearRoute}
           onLocateUser={handleLocateUser}
           userLocation={userLocation}
+          locationAccuracy={locationAccuracy}
           routeResult={routeResult}
           isLocating={isLocating}
           isTracking={isTracking}
@@ -215,6 +220,7 @@ export default function Index() {
           filteredFeatures={filteredFeatures}
           routeResult={routeResult}
           userLocation={userLocation}
+          locationAccuracy={locationAccuracy}
           destinationLocation={destinationLocation}
         />
         <UserGuide />
