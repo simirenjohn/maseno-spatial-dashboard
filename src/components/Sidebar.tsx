@@ -380,13 +380,13 @@ export default function Sidebar({
 
       {/* Layer list with filters */}
       <div className="flex-1 overflow-y-auto sidebar-scroll">
-        {LAYER_CONFIGS.map(cfg => {
+        {LAYER_CONFIGS.filter(c => c.id !== 'workers').map(cfg => {
           const isExpanded = expandedLayers[cfg.id] || false;
           const featureCount = geoData[cfg.id]?.features?.length || 0;
           const matchCount = getMatchCount(cfg.id);
           const isVisible = layerVisibility[cfg.id] !== false;
           const items = filteredItems[cfg.id];
-          const showListing = cfg.id === 'workers' || cfg.id === 'clinic' || cfg.id === 'parking';
+          const showListing = cfg.id === 'clinic' || cfg.id === 'parking' || cfg.id === 'religious';
 
           return (
             <div key={cfg.id} className="border-b border-border">
@@ -494,8 +494,8 @@ export default function Sidebar({
                             className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-xs hover:bg-muted transition-colors border-b border-border last:border-0"
                           >
                             <MapPin className="h-3 w-3 shrink-0" style={{ color: cfg.color }} />
-                            <span className="truncate font-medium">
-                              {cfg.id === 'clinic' ? 'University Clinic' : cfg.id === 'parking' ? `Parking Spot #${idx + 1}` : `${name} #${idx + 1}`}
+                            <span className="truncate font-medium capitalize">
+                              {cfg.id === 'clinic' ? 'University Clinic' : cfg.id === 'parking' ? `Parking Spot #${idx + 1}` : cfg.id === 'religious' ? name : `${name} #${idx + 1}`}
                             </span>
                           </button>
                         );
