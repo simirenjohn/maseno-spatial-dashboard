@@ -63,28 +63,56 @@ export default function Index() {
     setFilteredFeatures(filtered);
   }, []);
 
-  // One-time high accuracy location
+  // High-accuracy: sample multiple readings (~6s) and pick the most accurate
   const handleLocateUser = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
       return;
     }
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
+    let best: GeolocationPosition | null = null;
+    const started = Date.now();
+    const MAX_MS = 8000;
+    const TARGET_ACCURACY = 10; // metres
+
+    const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setUserLocation([lat, lng]);
-        setIsLocating(false);
-        toast.success(`Location found! ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        if (!best || pos.coords.accuracy < best.coords.accuracy) best = pos;
+        const elapsed = Date.now() - started;
+        if ((best && best.coords.accuracy <= TARGET_ACCURACY) || elapsed >= MAX_MS) {
+          navigator.geolocation.clearWatch(watchId);
+          if (best) {
+            const lat = best.coords.latitude;
+            const lng = best.coords.longitude;
+            setUserLocation([lat, lng]);
+            setIsLocating(false);
+            toast.success(`Location found (±${Math.round(best.coords.accuracy)}m): ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+          } else {
+            setIsLocating(false);
+            toast.error('Could not get a location fix');
+          }
+        }
       },
       (err) => {
+        navigator.geolocation.clearWatch(watchId);
         setIsLocating(false);
         toast.error('Enable location services: ' + err.message);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
-  }, []);
+
+    // Hard stop fallback
+    setTimeout(() => {
+      if (isLocating) {
+        navigator.geolocation.clearWatch(watchId);
+        if (best) {
+          setUserLocation([best.coords.latitude, best.coords.longitude]);
+          toast.success(`Location found (±${Math.round(best.coords.accuracy)}m)`);
+        }
+        setIsLocating(false);
+      }
+    }, MAX_MS + 500);
+  }, [isLocating]);
 
   // Continuous tracking with high accuracy
   const handleStartTracking = useCallback(() => {
