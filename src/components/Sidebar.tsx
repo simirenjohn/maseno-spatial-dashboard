@@ -332,8 +332,8 @@ export default function Sidebar({
           )}
         </div>
 
-        {searchResults.length > 0 && (
-          <div className="max-h-48 overflow-y-auto rounded-md border border-border bg-popover">
+        {(searchResults.length > 0 || childSearchResults.length > 0) && (
+          <div className="max-h-64 overflow-y-auto rounded-md border border-border bg-popover">
             {searchResults.map((r, i) => (
               <button
                 key={`${r.layerId}-${r.featureIndex}-${i}`}
@@ -345,33 +345,25 @@ export default function Sidebar({
                 <span className="ml-auto text-xs text-muted-foreground shrink-0">{r.layerLabel}</span>
               </button>
             ))}
-          </div>
-        )}
-
-        {/* Child table room search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            value={childSearch}
-            onChange={e => setChildSearch(e.target.value)}
-            placeholder="Search lecture rooms (NL, PGM)..."
-            className="pl-9 pr-8 h-8 text-xs"
-          />
-          {childSearch && (
-            <button onClick={() => setChildSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2">
-              <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-            </button>
-          )}
-        </div>
-        {childSearchResults.length > 0 && (
-          <div className="max-h-40 overflow-y-auto rounded-md border border-border bg-popover text-xs">
+            {childSearchResults.length > 0 && (
+              <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground bg-muted/50 border-y border-border uppercase tracking-wide">
+                Lecture Rooms
+              </div>
+            )}
             {childSearchResults.map((r, i) => (
-              <div key={i} className="px-3 py-2 border-b border-border last:border-0 hover:bg-muted/50">
-                <div className="font-medium">{r.roomName}</div>
-                <div className="text-muted-foreground">
+              <button
+                key={`child-${i}`}
+                onClick={() => {
+                  if (r.parentIdx >= 0) onSelectFeature(r.parentLayerId, r.parentIdx);
+                  setSearch('');
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border last:border-0"
+              >
+                <div className="text-sm font-medium truncate">{r.roomName}</div>
+                <div className="text-[11px] text-muted-foreground">
                   {r.building} • Floor {r.floor} • Lec: {r.lecCap} • Exam: {r.examCap}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
