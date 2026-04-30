@@ -358,7 +358,8 @@ export default function MapView({
         keys.forEach((key, i) => {
           const btn = L.DomUtil.create('button', i === 0 ? 'active' : '', container);
           btn.title = BASEMAPS[key].label;
-          btn.style.background = key === 'osm' ? '#ddd' : key === 'voyager' ? '#e8dcc8' : '#f0f0f0';
+          btn.style.background = key === 'osm' ? '#ddd' : '#1e293b';
+          btn.style.color = key === 'osm' ? '#000' : '#fff';
           btn.innerHTML = `<span style="font-size:9px;font-weight:700;">${BASEMAPS[key].label.charAt(0)}</span>`;
           btn.onclick = () => {
             baseTileRef.current?.remove();
