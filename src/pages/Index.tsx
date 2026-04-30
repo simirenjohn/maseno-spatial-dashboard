@@ -86,6 +86,7 @@ export default function Index() {
             const lat = best.coords.latitude;
             const lng = best.coords.longitude;
             setUserLocation([lat, lng]);
+            setLocationAccuracy(best.coords.accuracy);
             setIsLocating(false);
             toast.success(`Location found (±${Math.round(best.coords.accuracy)}m): ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
           } else {
