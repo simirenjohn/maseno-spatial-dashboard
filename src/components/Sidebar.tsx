@@ -283,7 +283,6 @@ export default function Sidebar({
   const clearAll = () => {
     setFilters(DEFAULT_FILTERS);
     setSearch('');
-    setChildSearch('');
     onFilterChange(null);
   };
 
