@@ -198,6 +198,7 @@ export default function Index() {
           onClearRoute={handleClearRoute}
           onLocateUser={handleLocateUser}
           userLocation={userLocation}
+          locationAccuracy={locationAccuracy}
           routeResult={routeResult}
           isLocating={isLocating}
           isTracking={isTracking}
