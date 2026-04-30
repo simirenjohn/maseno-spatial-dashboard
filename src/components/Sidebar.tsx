@@ -520,6 +520,20 @@ export default function Sidebar({
             </button>
             <Navigation className="h-4 w-4 mr-2 text-primary" />
             <span className="text-sm font-semibold">Get Directions</span>
+            {userLocation && locationAccuracy !== null && (
+              <span
+                className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  locationAccuracy <= 10
+                    ? 'bg-green-100 text-green-700'
+                    : locationAccuracy <= 30
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-red-100 text-red-700'
+                }`}
+                title="GPS accuracy"
+              >
+                ±{Math.round(locationAccuracy)}m
+              </span>
+            )}
           </div>
           {routingExpanded && (
             <RoutingPanel
