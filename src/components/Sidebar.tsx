@@ -120,17 +120,24 @@ export default function Sidebar({
     return results.slice(0, 20);
   }, [search, geoData]);
 
-  // Child table search results (New Library + PGM rooms)
+  // Child table search results (New Library + PGM rooms) — uses main search, case-insensitive
   const childSearchResults = useMemo(() => {
-    if (!childSearch.trim()) return [];
-    const q = childSearch.toLowerCase();
-    const results: { building: string; roomName: string; floor: number; lecCap: string; examCap: string }[] = [];
+    if (!search.trim()) return [];
+    const q = search.toLowerCase();
+    const results: { building: string; roomName: string; floor: number; lecCap: string; examCap: string; parentLayerId: string; parentIdx: number }[] = [];
 
-    const searchChild = (fc: GeoJSON.FeatureCollection | null, buildingName: string) => {
+    const findParentIdx = (buildingId: number) => {
+      const fc = geoData.lecture_halls;
+      if (!fc) return -1;
+      return fc.features.findIndex(f => f.properties?.building_id === buildingId);
+    };
+
+    const searchChild = (fc: GeoJSON.FeatureCollection | null, buildingName: string, parentBuildingId: number) => {
       if (!fc) return;
+      const parentIdx = findParentIdx(parentBuildingId);
       fc.features.forEach(f => {
         const p = f.properties || {};
-        const roomName = p.lecture_room_name || p['LECTURE ROOM NAME'] || '';
+        const roomName: string = p.lecture_room_name || p['LECTURE ROOM NAME'] || '';
         if (roomName.toLowerCase().includes(q)) {
           results.push({
             building: buildingName,
@@ -138,15 +145,17 @@ export default function Sidebar({
             floor: p.floor_number ?? 0,
             lecCap: p.lecture_capacity ?? p['LECTURE CAPACITY'] ?? '—',
             examCap: p.examination_capacity ?? p['EXAMINATION CAPACITY'] ?? '—',
+            parentLayerId: 'lecture_halls',
+            parentIdx,
           });
         }
       });
     };
 
-    searchChild(childTables.newLibrary, 'New Library');
-    searchChild(childTables.pgm, 'Prof. George Magoha');
+    searchChild(childTables.newLibrary, 'New Library', 0);
+    searchChild(childTables.pgm, 'Prof. George Magoha', 11);
     return results;
-  }, [childSearch, childTables]);
+  }, [search, childTables, geoData.lecture_halls]);
 
   // Get filtered feature indices for a layer
   const getFilteredIndices = (layerId: string, f: Filters): number[] => {
