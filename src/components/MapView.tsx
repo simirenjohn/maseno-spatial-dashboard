@@ -282,12 +282,13 @@ interface MapViewProps {
   filteredFeatures: Record<string, number[]> | null;
   routeResult: RouteResult | null;
   userLocation: [number, number] | null;
+  locationAccuracy?: number | null;
   destinationLocation: [number, number] | null;
 }
 
 export default function MapView({
   geoData, childTables, layerVisibility, selectedFeature, filteredFeatures,
-  routeResult, userLocation, destinationLocation,
+  routeResult, userLocation, locationAccuracy, destinationLocation,
 }: MapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -295,6 +296,7 @@ export default function MapView({
   const baseTileRef = useRef<L.TileLayer | null>(null);
   const routeLayerRef = useRef<L.LayerGroup>(L.layerGroup());
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const userAccuracyCircleRef = useRef<L.Circle | null>(null);
   const destMarkerRef = useRef<L.Marker | null>(null);
 
   // Report modal state
@@ -508,8 +510,10 @@ export default function MapView({
     if (!map) return;
 
     if (userMarkerRef.current) { userMarkerRef.current.remove(); userMarkerRef.current = null; }
+    if (userAccuracyCircleRef.current) { userAccuracyCircleRef.current.remove(); userAccuracyCircleRef.current = null; }
 
     if (userLocation) {
+      const accLabel = locationAccuracy != null ? `±${Math.round(locationAccuracy)}m` : '';
       const icon = L.divIcon({
         html: `<div class="pulse-marker-container">
           <div class="pulse-ring"></div>
@@ -518,9 +522,21 @@ export default function MapView({
         className: '', iconSize: [40, 40], iconAnchor: [20, 20],
       });
       userMarkerRef.current = L.marker(userLocation, { icon, zIndexOffset: 1000 }).addTo(map);
-      userMarkerRef.current.bindPopup('<b>📍 You are here</b>');
+      userMarkerRef.current.bindPopup(`<b>📍 You are here</b>${accLabel ? `<br/><span style="font-size:11px;color:#555;">Accuracy: ${accLabel}</span>` : ''}`);
+
+      if (locationAccuracy != null && locationAccuracy > 0) {
+        const color = locationAccuracy <= 10 ? '#16a34a' : locationAccuracy <= 30 ? '#ca8a04' : '#dc2626';
+        userAccuracyCircleRef.current = L.circle(userLocation, {
+          radius: locationAccuracy,
+          color,
+          weight: 1,
+          fillColor: color,
+          fillOpacity: 0.12,
+          interactive: false,
+        }).addTo(map);
+      }
     }
-  }, [userLocation]);
+  }, [userLocation, locationAccuracy]);
 
   // Destination marker
   useEffect(() => {
