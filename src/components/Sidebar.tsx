@@ -56,7 +56,6 @@ export default function Sidebar({
   isTracking, onStartTracking, onStopTracking,
 }: SidebarProps) {
   const [search, setSearch] = useState('');
-  const [childSearch, setChildSearch] = useState('');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [expandedLayers, setExpandedLayers] = useState<Record<string, boolean>>({});
   const [routingExpanded, setRoutingExpanded] = useState(false);
