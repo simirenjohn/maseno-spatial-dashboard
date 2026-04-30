@@ -7,8 +7,7 @@ import ReportIssueModal from '@/components/ReportIssueModal';
 
 const BASEMAPS = {
   osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap contributors', label: 'OSM' },
-  voyager: { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr: '© CartoDB', label: 'Voyager' },
-  positron: { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr: '© CartoDB', label: 'Light' },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics', label: 'Satellite' },
 };
 
 // Photo mapping for buildings
@@ -359,7 +358,8 @@ export default function MapView({
         keys.forEach((key, i) => {
           const btn = L.DomUtil.create('button', i === 0 ? 'active' : '', container);
           btn.title = BASEMAPS[key].label;
-          btn.style.background = key === 'osm' ? '#ddd' : key === 'voyager' ? '#e8dcc8' : '#f0f0f0';
+          btn.style.background = key === 'osm' ? '#ddd' : '#1e293b';
+          btn.style.color = key === 'osm' ? '#000' : '#fff';
           btn.innerHTML = `<span style="font-size:9px;font-weight:700;">${BASEMAPS[key].label.charAt(0)}</span>`;
           btn.onclick = () => {
             baseTileRef.current?.remove();

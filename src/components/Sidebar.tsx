@@ -56,7 +56,6 @@ export default function Sidebar({
   isTracking, onStartTracking, onStopTracking,
 }: SidebarProps) {
   const [search, setSearch] = useState('');
-  const [childSearch, setChildSearch] = useState('');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [expandedLayers, setExpandedLayers] = useState<Record<string, boolean>>({});
   const [routingExpanded, setRoutingExpanded] = useState(false);
@@ -121,17 +120,24 @@ export default function Sidebar({
     return results.slice(0, 20);
   }, [search, geoData]);
 
-  // Child table search results (New Library + PGM rooms)
+  // Child table search results (New Library + PGM rooms) — uses main search, case-insensitive
   const childSearchResults = useMemo(() => {
-    if (!childSearch.trim()) return [];
-    const q = childSearch.toLowerCase();
-    const results: { building: string; roomName: string; floor: number; lecCap: string; examCap: string }[] = [];
+    if (!search.trim()) return [];
+    const q = search.toLowerCase();
+    const results: { building: string; roomName: string; floor: number; lecCap: string; examCap: string; parentLayerId: string; parentIdx: number }[] = [];
 
-    const searchChild = (fc: GeoJSON.FeatureCollection | null, buildingName: string) => {
+    const findParentIdx = (buildingId: number) => {
+      const fc = geoData.lecture_halls;
+      if (!fc) return -1;
+      return fc.features.findIndex(f => f.properties?.building_id === buildingId);
+    };
+
+    const searchChild = (fc: GeoJSON.FeatureCollection | null, buildingName: string, parentBuildingId: number) => {
       if (!fc) return;
+      const parentIdx = findParentIdx(parentBuildingId);
       fc.features.forEach(f => {
         const p = f.properties || {};
-        const roomName = p.lecture_room_name || p['LECTURE ROOM NAME'] || '';
+        const roomName: string = p.lecture_room_name || p['LECTURE ROOM NAME'] || '';
         if (roomName.toLowerCase().includes(q)) {
           results.push({
             building: buildingName,
@@ -139,15 +145,17 @@ export default function Sidebar({
             floor: p.floor_number ?? 0,
             lecCap: p.lecture_capacity ?? p['LECTURE CAPACITY'] ?? '—',
             examCap: p.examination_capacity ?? p['EXAMINATION CAPACITY'] ?? '—',
+            parentLayerId: 'lecture_halls',
+            parentIdx,
           });
         }
       });
     };
 
-    searchChild(childTables.newLibrary, 'New Library');
-    searchChild(childTables.pgm, 'Prof. George Magoha');
+    searchChild(childTables.newLibrary, 'New Library', 0);
+    searchChild(childTables.pgm, 'Prof. George Magoha', 11);
     return results;
-  }, [childSearch, childTables]);
+  }, [search, childTables, geoData.lecture_halls]);
 
   // Get filtered feature indices for a layer
   const getFilteredIndices = (layerId: string, f: Filters): number[] => {
@@ -275,7 +283,6 @@ export default function Sidebar({
   const clearAll = () => {
     setFilters(DEFAULT_FILTERS);
     setSearch('');
-    setChildSearch('');
     onFilterChange(null);
   };
 
@@ -325,8 +332,8 @@ export default function Sidebar({
           )}
         </div>
 
-        {searchResults.length > 0 && (
-          <div className="max-h-48 overflow-y-auto rounded-md border border-border bg-popover">
+        {(searchResults.length > 0 || childSearchResults.length > 0) && (
+          <div className="max-h-64 overflow-y-auto rounded-md border border-border bg-popover">
             {searchResults.map((r, i) => (
               <button
                 key={`${r.layerId}-${r.featureIndex}-${i}`}
@@ -338,33 +345,25 @@ export default function Sidebar({
                 <span className="ml-auto text-xs text-muted-foreground shrink-0">{r.layerLabel}</span>
               </button>
             ))}
-          </div>
-        )}
-
-        {/* Child table room search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            value={childSearch}
-            onChange={e => setChildSearch(e.target.value)}
-            placeholder="Search lecture rooms (NL, PGM)..."
-            className="pl-9 pr-8 h-8 text-xs"
-          />
-          {childSearch && (
-            <button onClick={() => setChildSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2">
-              <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-            </button>
-          )}
-        </div>
-        {childSearchResults.length > 0 && (
-          <div className="max-h-40 overflow-y-auto rounded-md border border-border bg-popover text-xs">
+            {childSearchResults.length > 0 && (
+              <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground bg-muted/50 border-y border-border uppercase tracking-wide">
+                Lecture Rooms
+              </div>
+            )}
             {childSearchResults.map((r, i) => (
-              <div key={i} className="px-3 py-2 border-b border-border last:border-0 hover:bg-muted/50">
-                <div className="font-medium">{r.roomName}</div>
-                <div className="text-muted-foreground">
+              <button
+                key={`child-${i}`}
+                onClick={() => {
+                  if (r.parentIdx >= 0) onSelectFeature(r.parentLayerId, r.parentIdx);
+                  setSearch('');
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border last:border-0"
+              >
+                <div className="text-sm font-medium truncate">{r.roomName}</div>
+                <div className="text-[11px] text-muted-foreground">
                   {r.building} • Floor {r.floor} • Lec: {r.lecCap} • Exam: {r.examCap}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -417,7 +416,7 @@ export default function Sidebar({
                   {cfg.id === 'hostels' && (
                     <>
                       <FilterSelect label="Gender" value={filters.hostelGender} onChange={v => updateFilter('hostelGender', v)} options={[
-                        { value: 'all', label: 'All' }, { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' }, { value: 'MIXED', label: 'Mixed' },
+                        { value: 'all', label: 'All' }, { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' },
                       ]} />
                       <FilterSelect label="Price (KES)" value={filters.hostelPrice} onChange={v => updateFilter('hostelPrice', v)} options={[
                         { value: 'all', label: 'All Prices' }, ...hostelPrices.map(p => ({ value: String(p), label: `KES ${p.toLocaleString()}` })),
