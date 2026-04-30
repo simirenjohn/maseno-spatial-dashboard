@@ -124,6 +124,7 @@ export default function Index() {
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        setLocationAccuracy(pos.coords.accuracy);
       },
       () => toast.error('Tracking error'),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
