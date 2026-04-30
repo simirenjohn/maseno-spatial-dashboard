@@ -220,6 +220,7 @@ export default function Index() {
           filteredFeatures={filteredFeatures}
           routeResult={routeResult}
           userLocation={userLocation}
+          locationAccuracy={locationAccuracy}
           destinationLocation={destinationLocation}
         />
         <UserGuide />
