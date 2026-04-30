@@ -21,6 +21,7 @@ export default function Index() {
 
   // Routing state
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [destinationLocation, setDestinationLocation] = useState<[number, number] | null>(null);
   const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
   const [isLocating, setIsLocating] = useState(false);
