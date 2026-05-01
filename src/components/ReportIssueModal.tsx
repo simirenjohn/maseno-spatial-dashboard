@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertTriangle, X, Send, Loader2 } from 'lucide-react';
+import { AlertTriangle, X, Send, Loader2, Camera, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { compressImage } from '@/lib/imageCompress';
 
 const CAMPUS_CENTER = { lat: -0.0040, lng: 34.6050 };
 const CAMPUS_RADIUS_M = 1500;
@@ -45,6 +46,12 @@ export default function ReportIssueModal({ open, onClose, facilityName, facility
   const [reporterName, setReporterName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Photo state
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
   const issues = ISSUE_TYPES[facilityType] || ['General issue', 'Maintenance needed', 'Safety concern'];
 
   const handleVerifyLocation = () => {
@@ -74,18 +81,64 @@ export default function ReportIssueModal({ open, onClose, facilityName, facility
     );
   };
 
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting same file later
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Image is too large (max 15 MB)');
+      return;
+    }
+    try {
+      const blob = await compressImage(file, 1600, 0.8);
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+      setPhotoBlob(blob);
+      setPhotoPreview(URL.createObjectURL(blob));
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not process this image');
+    }
+  };
+
+  const removePhoto = () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoBlob(null);
+    setPhotoPreview(null);
+  };
+
   const handleSubmit = async () => {
     if (!issueType) {
       toast.error('Please select an issue type');
       return;
     }
     setSubmitting(true);
+
+    let photo_url: string | null = null;
+    if (photoBlob) {
+      const filename = `${crypto.randomUUID()}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from('report-photos')
+        .upload(filename, photoBlob, { contentType: 'image/jpeg', cacheControl: '3600' });
+      if (upErr) {
+        setSubmitting(false);
+        toast.error('Photo upload failed: ' + upErr.message);
+        return;
+      }
+      const { data: pub } = supabase.storage.from('report-photos').getPublicUrl(filename);
+      photo_url = pub.publicUrl;
+    }
+
     const { error } = await supabase.from('facility_reports').insert({
       facility_name: facilityName,
       facility_type: facilityType,
       issue_type: issueType,
       description: description || '',
       reporter_name: reporterName || 'Anonymous',
+      photo_url,
     });
     setSubmitting(false);
     if (error) {
@@ -101,13 +154,14 @@ export default function ReportIssueModal({ open, onClose, facilityName, facility
     setIssueType('');
     setDescription('');
     setReporterName('');
+    removePhoto();
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden [&>button.absolute]:hidden">
-        <DialogHeader className="px-4 pt-4 pb-2 flex flex-row items-center justify-between">
+      <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden [&>button.absolute]:hidden max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="px-4 pt-4 pb-2 flex flex-row items-center justify-between sticky top-0 bg-background z-10">
           <DialogTitle className="text-sm font-semibold flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
             Report Issue — {facilityName}
@@ -156,6 +210,67 @@ export default function ReportIssueModal({ open, onClose, facilityName, facility
                   rows={3}
                   className="w-full mt-1 px-3 py-2 text-sm bg-background rounded-md border border-border resize-none"
                 />
+              </div>
+
+              {/* Photo attachment */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Add Photo (optional)
+                </label>
+
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhotoSelected}
+                  className="hidden"
+                />
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelected}
+                  className="hidden"
+                />
+
+                {photoPreview ? (
+                  <div className="mt-1 relative rounded-md overflow-hidden border border-border">
+                    <img src={photoPreview} alt="Preview" className="w-full max-h-48 object-cover" />
+                    <button
+                      type="button"
+                      onClick={removePhoto}
+                      className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                      aria-label="Remove photo"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="gap-2"
+                    >
+                      <Camera className="h-4 w-4" /> Camera
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => galleryInputRef.current?.click()}
+                      className="gap-2"
+                    >
+                      <ImageIcon className="h-4 w-4" /> Gallery
+                    </Button>
+                  </div>
+                )}
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Helps the maintenance team see the issue. Image is auto-compressed.
+                </p>
               </div>
 
               <div>
