@@ -257,7 +257,7 @@ export default function Index() {
             }
             setViewMode((m) => (m === '2d' ? '3d' : '2d'));
           }}
-          className="absolute top-3 right-3 z-[500] flex items-center gap-1.5 px-3 h-9 rounded-lg bg-card shadow-lg border border-border text-xs font-semibold hover:bg-muted transition-colors"
+          className="absolute bottom-20 right-3 z-[500] flex items-center gap-1.5 px-3 h-10 rounded-lg bg-card shadow-lg border border-border text-xs font-semibold hover:bg-muted transition-colors"
           title={viewMode === '2d' ? 'Switch to 3D' : 'Switch to 2D'}
         >
           {viewMode === '2d' ? <Box className="h-4 w-4" /> : <MapIcon className="h-4 w-4" />}
