@@ -1,10 +1,12 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { useGeoData, LAYER_CONFIGS } from '@/hooks/useGeoData';
 import MapView from '@/components/MapView';
 import Sidebar from '@/components/Sidebar';
 import UserGuide from '@/components/UserGuide';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Box, Map as MapIcon } from 'lucide-react';
+
+const MapView3D = lazy(() => import('@/components/MapView3D'));
 
 import { RoadGraph, type RouteResult } from '@/lib/routing';
 import { toast } from 'sonner';
@@ -13,6 +15,7 @@ export default function Index() {
   const { data, childTables, loading } = useGeoData();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>(
     () => Object.fromEntries(LAYER_CONFIGS.map(l => [l.id, true]))
   );
