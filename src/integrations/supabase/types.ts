@@ -22,6 +22,7 @@ export type Database = {
           facility_type: string
           id: string
           issue_type: string
+          photo_url: string | null
           reporter_name: string | null
           status: string
           updated_at: string
@@ -33,6 +34,7 @@ export type Database = {
           facility_type: string
           id?: string
           issue_type: string
+          photo_url?: string | null
           reporter_name?: string | null
           status?: string
           updated_at?: string
@@ -44,6 +46,7 @@ export type Database = {
           facility_type?: string
           id?: string
           issue_type?: string
+          photo_url?: string | null
           reporter_name?: string | null
           status?: string
           updated_at?: string
