@@ -15,6 +15,7 @@ interface Report {
   reporter_name: string | null;
   status: string;
   created_at: string;
+  photo_url: string | null;
 }
 
 export default function Admin() {
@@ -28,6 +29,7 @@ export default function Admin() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Check auth state
   useEffect(() => {
@@ -206,6 +208,7 @@ export default function Admin() {
                   <th className="text-left px-3 py-2 font-medium text-xs">Facility</th>
                   <th className="text-left px-3 py-2 font-medium text-xs">Issue</th>
                   <th className="text-left px-3 py-2 font-medium text-xs hidden md:table-cell">Description</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Photo</th>
                   <th className="text-left px-3 py-2 font-medium text-xs">Reporter</th>
                   <th className="text-left px-3 py-2 font-medium text-xs">Date</th>
                   <th className="text-left px-3 py-2 font-medium text-xs">Status</th>
@@ -213,12 +216,25 @@ export default function Admin() {
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-8 text-muted-foreground text-xs">No reports found</td></tr>
+                  <tr><td colSpan={7} className="text-center py-8 text-muted-foreground text-xs">No reports found</td></tr>
                 ) : filtered.map(r => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium">{r.facility_name}</td>
                     <td className="px-3 py-2">{r.issue_type}</td>
                     <td className="px-3 py-2 hidden md:table-cell text-muted-foreground max-w-[200px] truncate">{r.description || '—'}</td>
+                    <td className="px-3 py-2">
+                      {r.photo_url ? (
+                        <button
+                          onClick={() => setLightboxUrl(r.photo_url)}
+                          className="block w-12 h-12 rounded-md overflow-hidden border border-border hover:ring-2 hover:ring-primary transition"
+                          aria-label="View photo"
+                        >
+                          <img src={r.photo_url} alt="Issue" className="w-full h-full object-cover" />
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">{r.reporter_name || 'Anonymous'}</td>
                     <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="px-3 py-2">
@@ -239,6 +255,27 @@ export default function Admin() {
           </div>
         </div>
       </div>
+
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 cursor-zoom-out"
+        >
+          <img
+            src={lightboxUrl}
+            alt="Report photo"
+            className="max-w-full max-h-full rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,10 +1,12 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { useGeoData, LAYER_CONFIGS } from '@/hooks/useGeoData';
 import MapView from '@/components/MapView';
 import Sidebar from '@/components/Sidebar';
 import UserGuide from '@/components/UserGuide';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Box, Map as MapIcon } from 'lucide-react';
+
+const MapView3D = lazy(() => import('@/components/MapView3D'));
 
 import { RoadGraph, type RouteResult } from '@/lib/routing';
 import { toast } from 'sonner';
@@ -13,6 +15,7 @@ export default function Index() {
   const { data, childTables, loading } = useGeoData();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>(
     () => Object.fromEntries(LAYER_CONFIGS.map(l => [l.id, true]))
   );
@@ -212,17 +215,55 @@ export default function Index() {
       )}
 
       <div className="flex-1 relative">
-        <MapView
-          geoData={data}
-          childTables={childTables}
-          layerVisibility={layerVisibility}
-          selectedFeature={selectedFeature}
-          filteredFeatures={filteredFeatures}
-          routeResult={routeResult}
-          userLocation={userLocation}
-          locationAccuracy={locationAccuracy}
-          destinationLocation={destinationLocation}
-        />
+        {viewMode === '2d' ? (
+          <MapView
+            geoData={data}
+            childTables={childTables}
+            layerVisibility={layerVisibility}
+            selectedFeature={selectedFeature}
+            filteredFeatures={filteredFeatures}
+            routeResult={routeResult}
+            userLocation={userLocation}
+            locationAccuracy={locationAccuracy}
+            destinationLocation={destinationLocation}
+          />
+        ) : (
+          <Suspense
+            fallback={
+              <div className="absolute inset-0 flex items-center justify-center bg-background">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Loading 3D view...</p>
+                </div>
+              </div>
+            }
+          >
+            <MapView3D
+              geoData={data}
+              layerVisibility={layerVisibility}
+              routeResult={routeResult}
+              userLocation={userLocation}
+              locationAccuracy={locationAccuracy}
+              destinationLocation={destinationLocation}
+            />
+          </Suspense>
+        )}
+
+        {/* 2D / 3D toggle */}
+        <button
+          onClick={() => {
+            if (viewMode === '2d' && !(window as any).WebGLRenderingContext) {
+              return;
+            }
+            setViewMode((m) => (m === '2d' ? '3d' : '2d'));
+          }}
+          className="absolute bottom-20 right-3 z-[500] flex items-center gap-1.5 px-3 h-10 rounded-lg bg-card shadow-lg border border-border text-xs font-semibold hover:bg-muted transition-colors"
+          title={viewMode === '2d' ? 'Switch to 3D' : 'Switch to 2D'}
+        >
+          {viewMode === '2d' ? <Box className="h-4 w-4" /> : <MapIcon className="h-4 w-4" />}
+          {viewMode === '2d' ? '3D' : '2D'}
+        </button>
+
         <UserGuide />
       </div>
     </div>
