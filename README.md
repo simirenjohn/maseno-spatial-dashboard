@@ -1,3 +1,1 @@
-# Welcome to your Lovable project
-
-TODO: Document your project here
+interactive map of Maseno University that helps students and visitors easily locate blocks, facilities, and important areas on campus
