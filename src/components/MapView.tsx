@@ -564,12 +564,17 @@ export default function MapView({
   return (
     <>
       <div ref={mapContainerRef} className="w-full h-full" />
-      <ReportIssueModal
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        facilityName={reportFacility.name}
-        facilityType={reportFacility.type}
-      />
+      {reportOpen && (
+        <Suspense fallback={null}>
+          <ReportIssueModal
+            open={reportOpen}
+            onClose={() => setReportOpen(false)}
+            facilityName={reportFacility.name}
+            facilityType={reportFacility.type}
+          />
+        </Suspense>
+      )}
     </>
+
   );
 }
