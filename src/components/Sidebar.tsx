@@ -62,11 +62,7 @@ export default function Sidebar({
   const [routingExpanded, setRoutingExpanded] = useState(false);
 
   // Dynamic filter options
-  const hostelPrices = useMemo(() => {
-    const prices = new Set<number>();
-    geoData.hostels?.features.forEach(f => { if (f.properties?.Price) prices.add(f.properties.Price); });
-    return [...prices].sort((a, b) => a - b);
-  }, [geoData.hostels]);
+
 
   const hostelCapacities = useMemo(() => {
     const caps = new Set<number>();
