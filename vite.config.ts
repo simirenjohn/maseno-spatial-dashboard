@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
         // be served in parallel from the CDN under heavy concurrent load.
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
-          leaflet: ["leaflet", "react-leaflet"],
+          leaflet: ["leaflet"],
           supabase: ["@supabase/supabase-js"],
         },
       },
