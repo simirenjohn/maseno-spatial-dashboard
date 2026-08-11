@@ -41,7 +41,7 @@ interface Filters {
 
 const DEFAULT_FILTERS: Filters = {
   hostelGender: 'all',
-  hostelPrice: 'all',
+  
   hostelCapacity: 'all',
   lectureCapacity: 'all',
   examCapacity: 'all',
