@@ -150,11 +150,15 @@ export default function Index() {
     setIsTracking(false);
   }, []);
 
-  const handleRoute = useCallback((fromLat: number, fromLng: number, toLat: number, toLng: number) => {
-    const graph = roadGraphRef.current;
+  const handleRoute = useCallback(async (fromLat: number, fromLng: number, toLat: number, toLng: number) => {
+    let graph = roadGraphRef.current;
     if (!graph) {
-      toast.error('Road network not loaded yet. Please wait...');
-      return;
+      try {
+        graph = await getRoadGraph();
+      } catch {
+        toast.error('Could not load the campus road network. Please try again.');
+        return;
+      }
     }
     const result = graph.route(fromLat, fromLng, toLat, toLng);
     if (result) {
@@ -163,7 +167,8 @@ export default function Index() {
     } else {
       toast.error('No route found between these locations.');
     }
-  }, []);
+  }, [getRoadGraph]);
+
 
   const handleClearRoute = useCallback(() => {
     setRouteResult(null);
