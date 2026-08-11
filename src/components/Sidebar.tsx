@@ -29,7 +29,7 @@ interface SidebarProps {
 
 interface Filters {
   hostelGender: string;
-  hostelPrice: string;
+  
   hostelCapacity: string;
   lectureCapacity: string;
   examCapacity: string;
