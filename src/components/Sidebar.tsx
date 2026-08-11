@@ -169,7 +169,7 @@ export default function Sidebar({
         const p = feat.properties || {};
         let match = true;
         if (f.hostelGender !== 'all' && p.Gender?.toUpperCase() !== f.hostelGender.toUpperCase()) match = false;
-        if (f.hostelPrice !== 'all' && String(p.Price) !== f.hostelPrice) match = false;
+        
         if (f.hostelCapacity !== 'all' && String(p['Capacity Per Room']) !== f.hostelCapacity) match = false;
         if (match) indices.push(idx);
       });
