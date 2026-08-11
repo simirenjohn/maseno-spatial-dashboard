@@ -262,7 +262,7 @@ export default function Sidebar({
       if (!hasActive) { onFilterChange(null); return; }
       const result: Record<string, number[]> = {};
 
-      if (next.hostelGender !== 'all' || next.hostelPrice !== 'all' || next.hostelCapacity !== 'all') {
+      if (next.hostelGender !== 'all' || next.hostelCapacity !== 'all') {
         result.hostels = getFilteredIndices('hostels', next);
       }
       if (next.lectureCapacity !== 'all' || next.examCapacity !== 'all') {
