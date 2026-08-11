@@ -29,17 +29,28 @@ export default function Index() {
   const watchIdRef = useRef<number | null>(null);
   const roadGraphRef = useRef<RoadGraph | null>(null);
 
-  // Load road network
-  useEffect(() => {
-    fetch('/data/road_network.geojson')
-      .then(r => r.json())
-      .then(geojson => {
-        const graph = new RoadGraph();
-        graph.buildFromGeoJSON(geojson);
-        roadGraphRef.current = graph;
-      })
-      .catch(err => console.error('Failed to load road network:', err));
+  // Road network is loaded lazily (only when a route is first requested) so the
+  // 320KB graph never costs anything for visitors who just browse the map.
+  const roadGraphPromiseRef = useRef<Promise<RoadGraph> | null>(null);
+
+  const getRoadGraph = useCallback(() => {
+    if (!roadGraphPromiseRef.current) {
+      roadGraphPromiseRef.current = fetch('/data/road_network.geojson')
+        .then(r => r.json())
+        .then(geojson => {
+          const graph = new RoadGraph();
+          graph.buildFromGeoJSON(geojson);
+          roadGraphRef.current = graph;
+          return graph;
+        })
+        .catch(err => {
+          roadGraphPromiseRef.current = null;
+          throw err;
+        });
+    }
+    return roadGraphPromiseRef.current;
   }, []);
+
 
   // Cleanup tracking on unmount
   useEffect(() => {
