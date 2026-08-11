@@ -13,6 +13,20 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  build: {
+    rollupOptions: {
+      output: {
+        // Split heavy vendors so they cache independently of app code and can
+        // be served in parallel from the CDN under heavy concurrent load.
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          leaflet: ["leaflet", "react-leaflet"],
+          supabase: ["@supabase/supabase-js"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 900,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -20,3 +34,4 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
 }));
+
