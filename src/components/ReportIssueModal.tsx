@@ -119,7 +119,7 @@ export default function ReportIssueModal({ open, onClose, facilityName, facility
 
     let photo_url: string | null = null;
     if (photoBlob) {
-      const filename = `${crypto.randomUUID()}.jpg`;
+      const filename = `reports/${crypto.randomUUID()}.jpg`;
       const { error: upErr } = await supabase.storage
         .from('report-photos')
         .upload(filename, photoBlob, { contentType: 'image/jpeg', cacheControl: '3600' });
