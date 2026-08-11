@@ -419,9 +419,6 @@ export default function Sidebar({
                       <FilterSelect label="Gender" value={filters.hostelGender} onChange={v => updateFilter('hostelGender', v)} options={[
                         { value: 'all', label: 'All' }, { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' },
                       ]} />
-                      <FilterSelect label="Price (KES)" value={filters.hostelPrice} onChange={v => updateFilter('hostelPrice', v)} options={[
-                        { value: 'all', label: 'All Prices' }, ...hostelPrices.map(p => ({ value: String(p), label: `KES ${p.toLocaleString()}` })),
-                      ]} />
                       <FilterSelect label="Capacity/Room" value={filters.hostelCapacity} onChange={v => updateFilter('hostelCapacity', v)} options={[
                         { value: 'all', label: 'All' }, ...hostelCapacities.map(c => ({ value: String(c), label: `${c} per room` })),
                       ]} />
