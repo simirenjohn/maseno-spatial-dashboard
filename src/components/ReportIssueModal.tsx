@@ -115,6 +115,16 @@ export default function ReportIssueModal({ open, onClose, facilityName, facility
       toast.error('Please select an issue type');
       return;
     }
+    const name = facilityName.trim().slice(0, 200);
+    const type = facilityType.trim().slice(0, 100);
+    if (!name || !type) {
+      toast.error('Facility details are missing');
+      return;
+    }
+    if (description.length > 2000) {
+      toast.error('Description must be 2000 characters or fewer');
+      return;
+    }
     setSubmitting(true);
 
     let photo_url: string | null = null;
@@ -133,11 +143,11 @@ export default function ReportIssueModal({ open, onClose, facilityName, facility
     }
 
     const { error } = await supabase.from('facility_reports').insert({
-      facility_name: facilityName,
-      facility_type: facilityType,
-      issue_type: issueType,
-      description: description || '',
-      reporter_name: reporterName || 'Anonymous',
+      facility_name: name,
+      facility_type: type,
+      issue_type: issueType.trim().slice(0, 100),
+      description: description.trim(),
+      reporter_name: (reporterName.trim() || 'Anonymous').slice(0, 100),
       photo_url,
     });
     setSubmitting(false);
