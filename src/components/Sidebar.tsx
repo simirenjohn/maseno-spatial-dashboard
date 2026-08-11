@@ -206,11 +206,11 @@ export default function Sidebar({
     const result: Record<string, { idx: number; name: string; detail?: string }[]> = {};
 
     // Hostels
-    if (filters.hostelGender !== 'all' || filters.hostelPrice !== 'all' || filters.hostelCapacity !== 'all') {
+    if (filters.hostelGender !== 'all' || filters.hostelCapacity !== 'all') {
       const indices = getFilteredIndices('hostels', filters);
       result.hostels = indices.map(idx => {
         const p = geoData.hostels?.features[idx]?.properties || {};
-        return { idx, name: p.Name || 'Unknown', detail: `${p.Gender || ''} • KES ${p.Price?.toLocaleString() || '?'}` };
+        return { idx, name: p.Name || 'Unknown', detail: `${p.Gender || ''}${p['Capacity Per Room'] ? ` • ${p['Capacity Per Room']} per room` : ''}` };
       });
     }
 
