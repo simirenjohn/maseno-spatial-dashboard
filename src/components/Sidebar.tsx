@@ -29,7 +29,7 @@ interface SidebarProps {
 
 interface Filters {
   hostelGender: string;
-  hostelPrice: string;
+  
   hostelCapacity: string;
   lectureCapacity: string;
   examCapacity: string;
@@ -41,7 +41,7 @@ interface Filters {
 
 const DEFAULT_FILTERS: Filters = {
   hostelGender: 'all',
-  hostelPrice: 'all',
+  
   hostelCapacity: 'all',
   lectureCapacity: 'all',
   examCapacity: 'all',
@@ -62,11 +62,7 @@ export default function Sidebar({
   const [routingExpanded, setRoutingExpanded] = useState(false);
 
   // Dynamic filter options
-  const hostelPrices = useMemo(() => {
-    const prices = new Set<number>();
-    geoData.hostels?.features.forEach(f => { if (f.properties?.Price) prices.add(f.properties.Price); });
-    return [...prices].sort((a, b) => a - b);
-  }, [geoData.hostels]);
+
 
   const hostelCapacities = useMemo(() => {
     const caps = new Set<number>();
@@ -169,7 +165,7 @@ export default function Sidebar({
         const p = feat.properties || {};
         let match = true;
         if (f.hostelGender !== 'all' && p.Gender?.toUpperCase() !== f.hostelGender.toUpperCase()) match = false;
-        if (f.hostelPrice !== 'all' && String(p.Price) !== f.hostelPrice) match = false;
+        
         if (f.hostelCapacity !== 'all' && String(p['Capacity Per Room']) !== f.hostelCapacity) match = false;
         if (match) indices.push(idx);
       });
@@ -206,11 +202,11 @@ export default function Sidebar({
     const result: Record<string, { idx: number; name: string; detail?: string }[]> = {};
 
     // Hostels
-    if (filters.hostelGender !== 'all' || filters.hostelPrice !== 'all' || filters.hostelCapacity !== 'all') {
+    if (filters.hostelGender !== 'all' || filters.hostelCapacity !== 'all') {
       const indices = getFilteredIndices('hostels', filters);
       result.hostels = indices.map(idx => {
         const p = geoData.hostels?.features[idx]?.properties || {};
-        return { idx, name: p.Name || 'Unknown', detail: `${p.Gender || ''} • KES ${p.Price?.toLocaleString() || '?'}` };
+        return { idx, name: p.Name || 'Unknown', detail: `${p.Gender || ''}${p['Capacity Per Room'] ? ` • ${p['Capacity Per Room']} per room` : ''}` };
       });
     }
 
@@ -262,7 +258,7 @@ export default function Sidebar({
       if (!hasActive) { onFilterChange(null); return; }
       const result: Record<string, number[]> = {};
 
-      if (next.hostelGender !== 'all' || next.hostelPrice !== 'all' || next.hostelCapacity !== 'all') {
+      if (next.hostelGender !== 'all' || next.hostelCapacity !== 'all') {
         result.hostels = getFilteredIndices('hostels', next);
       }
       if (next.lectureCapacity !== 'all' || next.examCapacity !== 'all') {
@@ -418,9 +414,6 @@ export default function Sidebar({
                     <>
                       <FilterSelect label="Gender" value={filters.hostelGender} onChange={v => updateFilter('hostelGender', v)} options={[
                         { value: 'all', label: 'All' }, { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' },
-                      ]} />
-                      <FilterSelect label="Price (KES)" value={filters.hostelPrice} onChange={v => updateFilter('hostelPrice', v)} options={[
-                        { value: 'all', label: 'All Prices' }, ...hostelPrices.map(p => ({ value: String(p), label: `KES ${p.toLocaleString()}` })),
                       ]} />
                       <FilterSelect label="Capacity/Room" value={filters.hostelCapacity} onChange={v => updateFilter('hostelCapacity', v)} options={[
                         { value: 'all', label: 'All' }, ...hostelCapacities.map(c => ({ value: String(c), label: `${c} per room` })),

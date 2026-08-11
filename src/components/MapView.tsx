@@ -206,7 +206,7 @@ function getPopupContent(
   if (layerId === 'hostels') {
     content += `<table>
       <tr><td>Gender</td><td>${p.Gender || 'N/A'}</td></tr>
-      <tr><td>Price (KES)</td><td>${p.Price ? p.Price.toLocaleString() : 'N/A'}</td></tr>
+      
       <tr><td>Capacity/Room</td><td>${p['Capacity Per Room'] || 'N/A'}</td></tr>
     </table>`;
   } else if (layerId === 'lecture_halls') {
