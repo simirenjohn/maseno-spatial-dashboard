@@ -16,7 +16,7 @@ export default function Index() {
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>(
     () => Object.fromEntries(LAYER_CONFIGS.map(l => [l.id, true]))
   );
-  const [selectedFeature, setSelectedFeature] = useState<{ layerId: string; featureIndex: number } | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<{ layerId: string; featureIndex: number; roomName?: string | null } | null>(null);
   const [filteredFeatures, setFilteredFeatures] = useState<Record<string, number[]> | null>(null);
 
   // Routing state
@@ -65,8 +65,10 @@ export default function Index() {
     setLayerVisibility(prev => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
-  const selectFeature = useCallback((layerId: string, featureIndex: number) => {
-    setSelectedFeature({ layerId, featureIndex });
+  const selectFeature = useCallback((layerId: string, featureIndex: number, roomName?: string | null) => {
+    // Re-select the same feature by giving the object a fresh identity so the
+    // map re-zooms and re-highlights even when the pick did not change.
+    setSelectedFeature({ layerId, featureIndex, roomName: roomName ?? null });
     setLayerVisibility(prev => ({ ...prev, [layerId]: true }));
     if (isMobile) setSidebarOpen(false);
   }, [isMobile]);
@@ -169,6 +171,33 @@ export default function Index() {
     }
   }, [getRoadGraph]);
 
+
+  // "Navigate here" from any building popup: route from the user's position,
+  // asking for a location fix first when we do not have one yet.
+  const pendingDestRef = useRef<[number, number] | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { lat, lng } = (e as CustomEvent).detail as { lat: number; lng: number };
+      if (userLocation) {
+        handleRoute(userLocation[0], userLocation[1], lat, lng);
+      } else {
+        pendingDestRef.current = [lat, lng];
+        toast.info('Getting your location to start navigation...');
+        handleLocateUser();
+      }
+    };
+    window.addEventListener('navigate-to', handler);
+    return () => window.removeEventListener('navigate-to', handler);
+  }, [userLocation, handleRoute, handleLocateUser]);
+
+  useEffect(() => {
+    if (userLocation && pendingDestRef.current) {
+      const [lat, lng] = pendingDestRef.current;
+      pendingDestRef.current = null;
+      handleRoute(userLocation[0], userLocation[1], lat, lng);
+    }
+  }, [userLocation, handleRoute]);
 
   const handleClearRoute = useCallback(() => {
     setRouteResult(null);
