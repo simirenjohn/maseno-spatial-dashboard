@@ -115,12 +115,38 @@ function reportButtonHtml(facilityName: string, facilityType: string): string {
   return `<button onclick="window.dispatchEvent(new CustomEvent('open-report',{detail:{name:'${escapedName}',type:'${facilityType}'}}))" style="margin-top:8px;width:100%;padding:6px 12px;font-size:12px;font-weight:600;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">⚠️ Report Issue</button>`;
 }
 
+function navigateButtonHtml(facilityName: string, lat: number, lng: number): string {
+  const escapedName = facilityName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  return `<button onclick="window.dispatchEvent(new CustomEvent('navigate-to',{detail:{name:'${escapedName}',lat:${lat},lng:${lng}}}))" style="margin-top:8px;width:100%;padding:6px 12px;font-size:12px;font-weight:600;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">\u27a4 Navigate here</button>`;
+}
+
+function actionButtonsHtml(name: string, type: string, center: { lat: number; lng: number }): string {
+  return navigateButtonHtml(name, center.lat, center.lng) + reportButtonHtml(name, type);
+}
+
+function floorLabel(floor: number): string {
+  if (floor === 0) return 'Ground Floor';
+  const suffix = floor === 1 ? 'st' : floor === 2 ? 'nd' : floor === 3 ? 'rd' : 'th';
+  return `${floor}${suffix} Floor`;
+}
+
+function featureCenter(feature: GeoJSON.Feature): { lat: number; lng: number } {
+  try {
+    const c = L.geoJSON(feature as GeoJSON.GeoJsonObject).getBounds().getCenter();
+    return { lat: c.lat, lng: c.lng };
+  } catch {
+    return { lat: 0, lng: 0 };
+  }
+}
+
 function getPopupContent(
   feature: GeoJSON.Feature,
   layerId: string,
-  childTables: ChildTables
+  childTables: ChildTables,
+  highlightRoom?: string | null
 ): string {
   const p = feature.properties || {};
+  const center = featureCenter(feature);
 
   if (layerId === 'clinic') {
     return `<div class="campus-popup">
@@ -136,7 +162,7 @@ function getPopupContent(
         <tr><td>Population</td><td>Staff, Dependants, Students, Community</td></tr>
         <tr><td>Services</td><td style="font-size:11px;">${p.SERVICES || 'Outpatient, Inpatient, HIV Care, Laboratory, Pharmacy, Counselling, Antenatal, MCH, Family Planning, Maternity, Emergency, Ambulance'}</td></tr>
       </table>
-      ${reportButtonHtml('Maseno University Health Services', 'clinic')}
+      ${actionButtonsHtml('Maseno University Health Services', 'clinic', center)}
     </div>`;
   }
 
@@ -150,7 +176,7 @@ function getPopupContent(
         <tr><td>Type</td><td>${p['Waste type'] || 'N/A'}</td></tr>
         <tr><td>Condition</td><td><span style="color:${condColor[cond] || '#666'};font-weight:600;text-transform:capitalize;">${p.Condition || 'N/A'}</span></td></tr>
       </table>
-      ${reportButtonHtml(p['Waste type'] || 'Waste Point', 'waste')}
+      ${actionButtonsHtml(p['Waste type'] || 'Waste Point', 'waste', center)}
     </div>`;
   }
 
@@ -162,7 +188,7 @@ function getPopupContent(
         <tr><td>Network</td><td>${p.wifi_name || 'N/A'}</td></tr>
         <tr><td>Password</td><td><code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:12px;">${p.PASSWORD || 'N/A'}</code></td></tr>
       </table>
-      ${reportButtonHtml(p.wifi_name || 'WiFi Point', 'wifi')}
+      ${actionButtonsHtml(p.wifi_name || 'WiFi Point', 'wifi', center)}
     </div>`;
   }
 
@@ -174,7 +200,7 @@ function getPopupContent(
         <tr><td>Purpose</td><td>${p.PURPOSE || 'Parking space'}</td></tr>
         <tr><td>ID</td><td>#${p.fid || 'N/A'}</td></tr>
       </table>
-      ${reportButtonHtml(p.PURPOSE || 'Parking Spot', 'parking')}
+      ${actionButtonsHtml(p.PURPOSE || 'Parking Spot', 'parking', center)}
     </div>`;
   }
 
@@ -190,6 +216,8 @@ function getPopupContent(
     religious: 'background:#fce4ec;color:#c62828;',
     workers: 'background:#fff8e1;color:#f57f17;',
     clinic: 'background:#fce4ec;color:#c62828;',
+    amenities: 'background:#ccfbf1;color:#0f766e;',
+    sports: 'background:#ecfccb;color:#4d7c0f;',
   };
 
   const buildingPhoto = BUILDING_PHOTOS[name] || '';
@@ -215,10 +243,10 @@ function getPopupContent(
     const buildingId = p.building_id;
     if (buildingId === 0 && childTables.newLibrary) {
       content += `<p style="font-size:12px;color:#666;margin:4px 0;">Multi-storey building with lecture rooms</p>`;
-      content += buildRoomTable(childTables.newLibrary, 'New Library');
+      content += buildRoomTable(childTables.newLibrary, 'New Library', highlightRoom);
     } else if (buildingId === 11 && childTables.pgm) {
       content += `<p style="font-size:12px;color:#666;margin:4px 0;">Multi-storey building with lecture rooms</p>`;
-      content += buildRoomTable(childTables.pgm, 'Prof. George Magoha');
+      content += buildRoomTable(childTables.pgm, 'Prof. George Magoha', highlightRoom);
     } else {
       content += `<table>
         <tr><td>Lecture Capacity</td><td>${p['LECTURE CAPACITY'] ?? 'N/A'}</td></tr>
@@ -230,14 +258,18 @@ function getPopupContent(
     content += `<table><tr><td>Type</td><td>${p.type || 'N/A'}</td></tr></table>`;
   } else if (layerId === 'labs') {
     content += `<table><tr><td>Capacity</td><td>${p.CAPACITY || 'N/A'}</td></tr></table>`;
+  } else if (layerId === 'amenities' || layerId === 'sports') {
+    content += `<table><tr><td>Type</td><td>${p.type || 'N/A'}</td></tr></table>`;
   }
 
-  content += reportButtonHtml(name, layerId);
+  content += actionButtonsHtml(name, layerId, center);
   content += '</div>';
   return content;
 }
 
-function buildRoomTable(childTable: GeoJSON.FeatureCollection, buildingName: string): string {
+const normalizeRoom = (v: string) => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+function buildRoomTable(childTable: GeoJSON.FeatureCollection, buildingName: string, highlightRoom?: string | null): string {
   const features = childTable.features;
   const roomNameKey = features[0]?.properties?.lecture_room_name !== undefined ? 'lecture_room_name' : 'LECTURE ROOM NAME';
   const floorKey = 'floor_number';
@@ -253,16 +285,25 @@ function buildRoomTable(childTable: GeoJSON.FeatureCollection, buildingName: str
 
   const sortedFloors = [...floors.entries()].sort((a, b) => a[0] - b[0]);
 
-  let html = '<div class="room-table">';
+  const target = highlightRoom ? normalizeRoom(highlightRoom) : '';
+  let html = '';
+  if (target) {
+    const match = features.find(f => normalizeRoom(f.properties?.[roomNameKey]) === target);
+    if (match) {
+      html += `<div style="margin:6px 0;padding:6px 10px;border-radius:6px;background:#fef3c7;color:#92400e;font-weight:700;font-size:12px;">${match.properties?.[roomNameKey]} &middot; ${floorLabel(match.properties?.[floorKey] ?? 0)}</div>`;
+    }
+  }
+  html += '<div class="room-table">';
   sortedFloors.forEach(([floor, rooms]) => {
-    html += `<div class="floor-header">Floor ${floor}</div>`;
+    html += `<div class="floor-header">${floorLabel(floor)}</div>`;
     html += `<table><tr><th>Room</th><th>Lec. Cap</th><th>Exam Cap</th></tr>`;
     rooms.forEach(r => {
       const rp = r.properties || {};
       const roomName = rp[roomNameKey] || 'N/A';
       const isNL5 = roomName === 'NL 5';
-      html += `<tr>
-        <td style="text-align:left;font-weight:500;">${roomName}${isNL5 ? ' 📷' : ''}</td>
+      const isTarget = !!target && normalizeRoom(roomName) === target;
+      html += `<tr${isTarget ? ' style="background:#fef9c3;"' : ''}>
+        <td style="text-align:left;font-weight:500;${isTarget ? 'text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:2px;color:#92400e;' : ''}">${roomName}${isNL5 ? ' 📷' : ''}</td>
         <td>${rp[lecCapKey] ?? '—'}</td>
         <td>${rp[examCapKey] ?? '—'}</td>
       </tr>`;
@@ -280,7 +321,7 @@ interface MapViewProps {
   geoData: GeoDataState;
   childTables: ChildTables;
   layerVisibility: Record<string, boolean>;
-  selectedFeature: { layerId: string; featureIndex: number } | null;
+  selectedFeature: { layerId: string; featureIndex: number; roomName?: string | null } | null;
   filteredFeatures: Record<string, number[]> | null;
   routeResult: RouteResult | null;
   userLocation: [number, number] | null;
@@ -300,6 +341,7 @@ export default function MapView({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
   const destMarkerRef = useRef<L.Marker | null>(null);
+  const highlightRef = useRef<L.GeoJSON | null>(null);
 
   // Report modal state
   const [reportOpen, setReportOpen] = useState(false);
@@ -443,7 +485,7 @@ export default function MapView({
     const map = mapRef.current;
     if (!map || !selectedFeature) return;
 
-    const { layerId, featureIndex } = selectedFeature;
+    const { layerId, featureIndex, roomName } = selectedFeature;
     const fc = geoData[layerId];
     if (!fc) return;
     const feature = fc.features[featureIndex];
@@ -454,15 +496,25 @@ export default function MapView({
 
     const tempLayer = L.geoJSON(feature);
     const bounds = tempLayer.getBounds();
-    map.flyToBounds(bounds, { maxZoom: 18, padding: [50, 50], duration: 0.8 });
+    map.flyToBounds(bounds, { maxZoom: roomName ? 19 : 18, padding: [50, 50], duration: 0.8 });
 
-    setTimeout(() => {
+    // Pulsing halo around the selected building
+    highlightRef.current?.remove();
+    const halo = L.geoJSON(feature, {
+      style: { color: '#f59e0b', weight: 4, fillColor: '#f59e0b', fillOpacity: 0.15, opacity: 1, className: 'feature-highlight' },
+      pointToLayer: (_f, latlng) => L.circleMarker(latlng, { radius: 16, color: '#f59e0b', weight: 4, fillOpacity: 0.15, className: 'feature-highlight' }),
+    }).addTo(map);
+    highlightRef.current = halo;
+
+    const timer = setTimeout(() => {
       const center = bounds.getCenter();
       L.popup({ maxWidth: 380 })
         .setLatLng(center)
-        .setContent(getPopupContent(feature, layerId, childTables))
+        .setContent(getPopupContent(feature, layerId, childTables, roomName))
         .openOn(map);
     }, 900);
+
+    return () => clearTimeout(timer);
   }, [selectedFeature, geoData, childTables]);
 
   // Zoom to filtered features
