@@ -321,7 +321,7 @@ interface MapViewProps {
   geoData: GeoDataState;
   childTables: ChildTables;
   layerVisibility: Record<string, boolean>;
-  selectedFeature: { layerId: string; featureIndex: number } | null;
+  selectedFeature: { layerId: string; featureIndex: number; roomName?: string | null } | null;
   filteredFeatures: Record<string, number[]> | null;
   routeResult: RouteResult | null;
   userLocation: [number, number] | null;
@@ -341,6 +341,7 @@ export default function MapView({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
   const destMarkerRef = useRef<L.Marker | null>(null);
+  const highlightRef = useRef<L.GeoJSON | null>(null);
 
   // Report modal state
   const [reportOpen, setReportOpen] = useState(false);
@@ -484,7 +485,7 @@ export default function MapView({
     const map = mapRef.current;
     if (!map || !selectedFeature) return;
 
-    const { layerId, featureIndex } = selectedFeature;
+    const { layerId, featureIndex, roomName } = selectedFeature;
     const fc = geoData[layerId];
     if (!fc) return;
     const feature = fc.features[featureIndex];
@@ -495,15 +496,25 @@ export default function MapView({
 
     const tempLayer = L.geoJSON(feature);
     const bounds = tempLayer.getBounds();
-    map.flyToBounds(bounds, { maxZoom: 18, padding: [50, 50], duration: 0.8 });
+    map.flyToBounds(bounds, { maxZoom: roomName ? 19 : 18, padding: [50, 50], duration: 0.8 });
 
-    setTimeout(() => {
+    // Pulsing halo around the selected building
+    highlightRef.current?.remove();
+    const halo = L.geoJSON(feature, {
+      style: { color: '#f59e0b', weight: 4, fillColor: '#f59e0b', fillOpacity: 0.15, opacity: 1, className: 'feature-highlight' },
+      pointToLayer: (_f, latlng) => L.circleMarker(latlng, { radius: 16, color: '#f59e0b', weight: 4, fillOpacity: 0.15, className: 'feature-highlight' }),
+    }).addTo(map);
+    highlightRef.current = halo;
+
+    const timer = setTimeout(() => {
       const center = bounds.getCenter();
       L.popup({ maxWidth: 380 })
         .setLatLng(center)
-        .setContent(getPopupContent(feature, layerId, childTables))
+        .setContent(getPopupContent(feature, layerId, childTables, roomName))
         .openOn(map);
     }, 900);
+
+    return () => clearTimeout(timer);
   }, [selectedFeature, geoData, childTables]);
 
   // Zoom to filtered features
