@@ -255,3 +255,13 @@
   0% { transform: scale(0.5); opacity: 1; }
   100% { transform: scale(1.5); opacity: 0; }
 }
+
+/* Highlight halo for the currently selected building / room */
+.feature-highlight {
+  animation: feature-highlight-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes feature-highlight-pulse {
+  0%, 100% { stroke-opacity: 1; stroke-width: 4; }
+  50% { stroke-opacity: 0.35; stroke-width: 8; }
+}
