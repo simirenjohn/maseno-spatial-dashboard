@@ -13,7 +13,7 @@ interface SidebarProps {
   childTables: ChildTables;
   layerVisibility: Record<string, boolean>;
   onToggleLayer: (id: string) => void;
-  onSelectFeature: (layerId: string, featureIndex: number) => void;
+  onSelectFeature: (layerId: string, featureIndex: number, roomName?: string | null) => void;
   onFilterChange: (filtered: Record<string, number[]> | null) => void;
   onRoute: (fromLat: number, fromLng: number, toLat: number, toLng: number) => void;
   onClearRoute: () => void;
@@ -37,6 +37,25 @@ interface Filters {
   labType: string;
   wasteCondition: string;
   wasteType: string;
+}
+
+// Search matching ignores case, spaces and punctuation so "pgm lh1", "pgmlh1"
+// and "PGM-LH 1" all resolve to the same room.
+const norm = (v: unknown) => String(v ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** Digit-aware match: a query ending in digits must match the same trailing number. */
+function matchesQuery(text: string, query: string): { hit: boolean; exact: boolean } {
+  const t = norm(text);
+  const q = norm(query);
+  if (!q) return { hit: false, exact: false };
+  const qDigits = q.match(/\d+$/)?.[0];
+  if (qDigits) {
+    const prefix = q.slice(0, q.length - qDigits.length);
+    const re = new RegExp(`${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${qDigits}(?!\\d)`);
+    if (re.test(t)) return { hit: true, exact: t === q || t.endsWith(qDigits) };
+    return { hit: t.includes(q), exact: false };
+  }
+  return { hit: t.includes(q), exact: t === q };
 }
 
 const DEFAULT_FILTERS: Filters = {
@@ -98,7 +117,7 @@ export default function Sidebar({
   const searchResults = useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
-    const results: { layerId: string; featureIndex: number; name: string; layerLabel: string; color: string }[] = [];
+    const results: { layerId: string; featureIndex: number; name: string; layerLabel: string; color: string; exact: boolean }[] = [];
 
     LAYER_CONFIGS.forEach(cfg => {
       const fc = geoData[cfg.id];
@@ -108,20 +127,21 @@ export default function Sidebar({
         const name = p[cfg.nameKey] || p.Name || p.name || p.NAME || '';
         const nameStr = typeof name === 'string' ? name : String(name);
         const typeVal = p.type || p.TYPE || cfg.label || '';
-        const searchText = `${nameStr} ${typeVal} ${cfg.label}`.toLowerCase();
-        if (searchText.includes(q)) {
-          results.push({ layerId: cfg.id, featureIndex: idx, name: nameStr || cfg.label, layerLabel: cfg.label, color: cfg.color });
+        const searchText = `${nameStr} ${typeVal} ${cfg.label}`;
+        const m = matchesQuery(searchText, search);
+        if (m.hit) {
+          results.push({ layerId: cfg.id, featureIndex: idx, name: nameStr || cfg.label, layerLabel: cfg.label, color: cfg.color, exact: m.exact });
         }
       });
     });
-    return results.slice(0, 20);
+    return results.sort((a, b) => Number(b.exact) - Number(a.exact)).slice(0, 20);
   }, [search, geoData]);
 
   // Child table search results (New Library + PGM rooms) — uses main search, case-insensitive
   const childSearchResults = useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
-    const results: { building: string; roomName: string; floor: number; lecCap: string; examCap: string; parentLayerId: string; parentIdx: number }[] = [];
+    const results: { building: string; roomName: string; floor: number; lecCap: string; examCap: string; parentLayerId: string; parentIdx: number; exact: boolean }[] = [];
 
     const findParentIdx = (buildingId: number) => {
       const fc = geoData.lecture_halls;
@@ -135,10 +155,12 @@ export default function Sidebar({
       fc.features.forEach(f => {
         const p = f.properties || {};
         const roomName: string = p.lecture_room_name || p['LECTURE ROOM NAME'] || '';
-        if (roomName.toLowerCase().includes(q)) {
+        const m = matchesQuery(`${roomName} ${buildingName}`, search);
+        if (m.hit) {
           results.push({
             building: buildingName,
             roomName,
+            exact: m.exact,
             floor: p.floor_number ?? 0,
             lecCap: p.lecture_capacity ?? p['LECTURE CAPACITY'] ?? '—',
             examCap: p.examination_capacity ?? p['EXAMINATION CAPACITY'] ?? '—',
@@ -151,7 +173,7 @@ export default function Sidebar({
 
     searchChild(childTables.newLibrary, 'New Library', 0);
     searchChild(childTables.pgm, 'Prof. George Magoha', 11);
-    return results;
+    return results.sort((a, b) => Number(b.exact) - Number(a.exact)).slice(0, 20);
   }, [search, childTables, geoData.lecture_halls]);
 
   // Get filtered feature indices for a layer
@@ -351,14 +373,14 @@ export default function Sidebar({
               <button
                 key={`child-${i}`}
                 onClick={() => {
-                  if (r.parentIdx >= 0) onSelectFeature(r.parentLayerId, r.parentIdx);
+                  if (r.parentIdx >= 0) onSelectFeature(r.parentLayerId, r.parentIdx, r.roomName);
                   setSearch('');
                 }}
                 className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border last:border-0"
               >
                 <div className="text-sm font-medium truncate">{r.roomName}</div>
                 <div className="text-[11px] text-muted-foreground">
-                  {r.building} • Floor {r.floor} • Lec: {r.lecCap} • Exam: {r.examCap}
+                  {r.building} • {r.floor === 0 ? 'Ground Floor' : `Floor ${r.floor}`} • Lec: {r.lecCap} • Exam: {r.examCap}
                 </div>
               </button>
             ))}
