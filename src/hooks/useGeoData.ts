@@ -21,6 +21,8 @@ export const LAYER_CONFIGS: LayerConfig[] = [
   { id: 'waste', label: 'Waste Management', color: '#78350f', file: '/data/waste_management.geojson', visible: true, nameKey: 'Waste type' },
   { id: 'wifi', label: 'WiFi Points', color: '#0ea5e9', file: '/data/wifi_points.geojson', visible: true, nameKey: 'wifi_name' },
   { id: 'parking', label: 'Parking Spots', color: '#6366f1', file: '/data/parking_spots.geojson', visible: true, nameKey: 'PURPOSE' },
+  { id: 'amenities', label: 'Amenities', color: '#0d9488', file: '/data/amenities.geojson', visible: true, nameKey: 'NAME', typeKey: 'type' },
+  { id: 'sports', label: 'Sports & Grounds', color: '#65a30d', file: '/data/sports_grounds.geojson', visible: true, nameKey: 'NAME', typeKey: 'type' },
 ];
 
 export interface GeoDataState {
