@@ -227,7 +227,8 @@ export class RoadGraph {
 
       for (const edge of node.edges) {
         if (visited.has(edge.nodeId)) continue;
-        const alt = current.dist + edge.weight;
+        const penalty = penalties?.get(edgeKey(current.id, edge.nodeId)) ?? 1;
+        const alt = current.dist + edge.weight * penalty;
         const existing = dist.get(edge.nodeId);
         if (existing === undefined || alt < existing) {
           dist.set(edge.nodeId, alt);
@@ -237,24 +238,32 @@ export class RoadGraph {
       }
     }
 
-    const endDist = dist.get(endKey);
-    if (endDist === undefined) return null;
+    if (dist.get(endKey) === undefined) return null;
 
     // Reconstruct path
     const path: [number, number][] = [];
+    const keys: string[] = [];
     let curr: string | null | undefined = endKey;
     while (curr) {
       const node = this.nodes.get(curr);
       if (!node) break;
       path.unshift([node.lat, node.lng]);
+      keys.unshift(curr);
       curr = prev.get(curr);
+    }
+
+    // Real (unpenalised) length of the reconstructed path
+    let realDist = 0;
+    for (let i = 1; i < path.length; i++) {
+      realDist += haversine(path[i - 1][0], path[i - 1][1], path[i][0], path[i][1]);
     }
 
     const walkingSpeed = 5 / 3.6; // 5 km/h in m/s
     return {
       path,
-      distance: endDist,
-      duration: endDist / walkingSpeed,
+      distance: realDist,
+      duration: realDist / walkingSpeed,
+      nodeKeys: keys,
     };
   }
 
@@ -264,4 +273,57 @@ export class RoadGraph {
     if (!startKey || !endKey) return null;
     return this.dijkstra(startKey, endKey);
   }
+
+  /**
+   * Returns up to `count` meaningfully different walking routes.
+   * The first is the shortest path; each subsequent one is found by penalising
+   * the edges already used, then kept only if it differs enough from the others.
+   */
+  routeAlternatives(
+    fromLat: number, fromLng: number, toLat: number, toLng: number, count = 2,
+  ): RouteResult[] {
+    const startKey = this.findNearest(fromLat, fromLng);
+    const endKey = this.findNearest(toLat, toLng);
+    if (!startKey || !endKey) return [];
+
+    const first = this.dijkstra(startKey, endKey);
+    if (!first) return [];
+
+    const results = [first];
+    const penalties = new Map<string, number>();
+
+    for (let attempt = 0; attempt < count * 2 && results.length < count; attempt++) {
+      const last = results[results.length - 1];
+      const keys = last.nodeKeys ?? [];
+      for (let i = 1; i < keys.length; i++) {
+        const k = edgeKey(keys[i - 1], keys[i]);
+        penalties.set(k, (penalties.get(k) ?? 1) * 3.5);
+      }
+
+      const candidate = this.dijkstra(startKey, endKey, penalties);
+      if (!candidate || candidate.path.length < 2) break;
+
+      const isNovel = results.every(r => overlapRatio(r, candidate) < 0.85);
+      const notTooLong = candidate.distance <= first.distance * 3;
+      if (isNovel && notTooLong) {
+        results.push(candidate);
+      }
+    }
+
+    return results;
+  }
 }
+
+function edgeKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+function overlapRatio(a: RouteResult, b: RouteResult): number {
+  const setA = new Set(a.nodeKeys ?? []);
+  const keysB = b.nodeKeys ?? [];
+  if (setA.size === 0 || keysB.length === 0) return 1;
+  let shared = 0;
+  for (const k of keysB) if (setA.has(k)) shared++;
+  return shared / Math.max(setA.size, keysB.length);
+}
+
