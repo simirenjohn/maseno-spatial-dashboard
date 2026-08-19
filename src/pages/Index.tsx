@@ -166,14 +166,29 @@ export default function Index() {
         return;
       }
     }
-    const result = graph.route(fromLat, fromLng, toLat, toLng);
-    if (result) {
-      setRouteResult(result);
+    const results = graph.routeAlternatives(fromLat, fromLng, toLat, toLng, 2);
+    if (results.length > 0) {
+      setRoutes(results);
+      setActiveRouteIndex(0);
       setDestinationLocation([toLat, toLng]);
+      // Keep the blue dot live while navigating
+      if (watchIdRef.current === null && navigator.geolocation) {
+        setIsTracking(true);
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (pos) => {
+            setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+            setLocationAccuracy(pos.coords.accuracy);
+          },
+          () => { /* keep last known position */ },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      }
+      if (results.length === 1) toast.info('Only one walking route is available to this place.');
     } else {
       toast.error('No route found between these locations.');
     }
   }, [getRoadGraph]);
+
 
 
   // "Navigate here" from any building popup: route from the user's position,
