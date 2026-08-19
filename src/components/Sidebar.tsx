@@ -116,7 +116,6 @@ export default function Sidebar({
   // Search results
   const searchResults = useMemo(() => {
     if (!search.trim()) return [];
-    const q = search.toLowerCase();
     const results: { layerId: string; featureIndex: number; name: string; layerLabel: string; color: string; exact: boolean }[] = [];
 
     LAYER_CONFIGS.forEach(cfg => {
@@ -140,7 +139,6 @@ export default function Sidebar({
   // Child table search results (New Library + PGM rooms) — uses main search, case-insensitive
   const childSearchResults = useMemo(() => {
     if (!search.trim()) return [];
-    const q = search.toLowerCase();
     const results: { building: string; roomName: string; floor: number; lecCap: string; examCap: string; parentLayerId: string; parentIdx: number; exact: boolean }[] = [];
 
     const findParentIdx = (buildingId: number) => {
