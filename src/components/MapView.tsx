@@ -324,6 +324,9 @@ interface MapViewProps {
   selectedFeature: { layerId: string; featureIndex: number; roomName?: string | null } | null;
   filteredFeatures: Record<string, number[]> | null;
   routeResult: RouteResult | null;
+  routes: RouteResult[];
+  activeRouteIndex: number;
+  onSelectRoute: (i: number) => void;
   userLocation: [number, number] | null;
   locationAccuracy?: number | null;
   destinationLocation: [number, number] | null;
@@ -331,7 +334,7 @@ interface MapViewProps {
 
 export default function MapView({
   geoData, childTables, layerVisibility, selectedFeature, filteredFeatures,
-  routeResult, userLocation, locationAccuracy, destinationLocation,
+  routeResult, routes, activeRouteIndex, onSelectRoute, userLocation, locationAccuracy, destinationLocation,
 }: MapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -342,6 +345,7 @@ export default function MapView({
   const userAccuracyCircleRef = useRef<L.Circle | null>(null);
   const destMarkerRef = useRef<L.Marker | null>(null);
   const highlightRef = useRef<L.GeoJSON | null>(null);
+  const fittedRouteRef = useRef(false);
 
   // Report modal state
   const [reportOpen, setReportOpen] = useState(false);
@@ -545,18 +549,49 @@ export default function MapView({
     if (!map) return;
     routeLayerRef.current.clearLayers();
 
-    if (routeResult && routeResult.path.length > 1) {
-      const shadow = L.polyline(routeResult.path, {
-        color: '#1e40af', weight: 8, opacity: 0.3,
+    if (routes.length === 0) return;
+
+    // Inactive alternatives first (drawn underneath), then the active route
+    routes.forEach((r, i) => {
+      if (i === activeRouteIndex || r.path.length < 2) return;
+      const alt = L.polyline(r.path, {
+        color: '#64748b', weight: 5, opacity: 0.65, dashArray: '10,8',
       });
-      const polyline = L.polyline(routeResult.path, {
-        color: '#4285F4', weight: 5, opacity: 0.9,
+      alt.bindTooltip(`Alternative route · ${Math.round(r.distance)} m`, { sticky: true });
+      alt.on('click', () => onSelectRoute(i));
+      routeLayerRef.current.addLayer(alt);
+    });
+
+    const active = routes[activeRouteIndex];
+    if (active && active.path.length > 1) {
+      const shadow = L.polyline(active.path, {
+        color: '#1e40af', weight: 9, opacity: 0.3,
+      });
+      const polyline = L.polyline(active.path, {
+        color: '#4285F4', weight: 5, opacity: 0.95,
       });
       routeLayerRef.current.addLayer(shadow);
       routeLayerRef.current.addLayer(polyline);
-      map.flyToBounds(polyline.getBounds(), { padding: [60, 60], duration: 0.8 });
+      if (!fittedRouteRef.current) {
+        map.flyToBounds(polyline.getBounds(), { padding: [60, 60], duration: 0.8 });
+        fittedRouteRef.current = true;
+      }
     }
-  }, [routeResult]);
+  }, [routes, activeRouteIndex, onSelectRoute]);
+
+  // Fit again only when a brand-new destination/route set arrives
+  useEffect(() => {
+    fittedRouteRef.current = false;
+  }, [destinationLocation]);
+
+  // While navigating, gently keep the live blue dot in view
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !userLocation || routes.length === 0) return;
+    if (!map.getBounds().pad(-0.15).contains(userLocation)) {
+      map.panTo(userLocation, { animate: true });
+    }
+  }, [userLocation, routes.length]);
 
   // User location marker with pulse
   useEffect(() => {
@@ -571,7 +606,7 @@ export default function MapView({
       const icon = L.divIcon({
         html: `<div class="pulse-marker-container">
           <div class="pulse-ring"></div>
-          <div style="width:16px;height:16px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 0 8px rgba(37,99,235,0.5);position:relative;z-index:2;"></div>
+          <div style="width:18px;height:18px;background:#1a73e8;border:3px solid #ffffff;border-radius:50%;box-shadow:0 0 0 1px rgba(26,115,232,0.4),0 2px 8px rgba(0,0,0,0.35);position:relative;z-index:2;"></div>
         </div>`,
         className: '', iconSize: [40, 40], iconAnchor: [20, 20],
       });
@@ -579,7 +614,7 @@ export default function MapView({
       userMarkerRef.current.bindPopup(`<b>📍 You are here</b>${accLabel ? `<br/><span style="font-size:11px;color:#555;">Accuracy: ${accLabel}</span>` : ''}`);
 
       if (locationAccuracy != null && locationAccuracy > 0) {
-        const color = locationAccuracy <= 10 ? '#16a34a' : locationAccuracy <= 30 ? '#ca8a04' : '#dc2626';
+        const color = '#1a73e8';
         userAccuracyCircleRef.current = L.circle(userLocation, {
           radius: locationAccuracy,
           color,
