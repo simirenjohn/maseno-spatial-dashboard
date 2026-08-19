@@ -219,8 +219,14 @@ export default function Index() {
   }, [userLocation, handleRoute]);
 
   const handleClearRoute = useCallback(() => {
-    setRouteResult(null);
+    setRoutes([]);
+    setActiveRouteIndex(0);
     setDestinationLocation(null);
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+      setIsTracking(false);
+    }
   }, []);
 
   if (loading) {
