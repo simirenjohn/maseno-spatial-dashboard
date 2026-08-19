@@ -4,6 +4,7 @@ export interface RouteResult {
   path: [number, number][]; // [lat, lng] pairs for Leaflet
   distance: number; // meters
   duration: number; // seconds (walking ~5km/h)
+  nodeKeys?: string[]; // graph node ids along the path (used for alternatives)
 }
 
 interface GraphNode {
