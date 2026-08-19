@@ -270,6 +270,9 @@ export default function Index() {
           userLocation={userLocation}
           locationAccuracy={locationAccuracy}
           routeResult={routeResult}
+          routes={routes}
+          activeRouteIndex={activeRouteIndex}
+          onSelectRoute={setActiveRouteIndex}
           isLocating={isLocating}
           isTracking={isTracking}
           onStartTracking={handleStartTracking}
@@ -289,6 +292,9 @@ export default function Index() {
           selectedFeature={selectedFeature}
           filteredFeatures={filteredFeatures}
           routeResult={routeResult}
+          routes={routes}
+          activeRouteIndex={activeRouteIndex}
+          onSelectRoute={setActiveRouteIndex}
           userLocation={userLocation}
           locationAccuracy={locationAccuracy}
           destinationLocation={destinationLocation}
