@@ -12,6 +12,9 @@ interface RoutingPanelProps {
   onLocateUser: () => void;
   userLocation: [number, number] | null;
   routeResult: RouteResult | null;
+  routes: RouteResult[];
+  activeRouteIndex: number;
+  onSelectRoute: (i: number) => void;
   isLocating: boolean;
   isTracking: boolean;
   onStartTracking: () => void;
@@ -43,7 +46,7 @@ function getBounds(geometry: GeoJSON.Geometry) {
 }
 
 export default function RoutingPanel({
-  geoData, onRoute, onClearRoute, onLocateUser, userLocation, routeResult, isLocating,
+  geoData, onRoute, onClearRoute, onLocateUser, userLocation, routeResult, routes, activeRouteIndex, onSelectRoute, isLocating,
   isTracking, onStartTracking, onStopTracking,
 }: RoutingPanelProps) {
   const [destination, setDestination] = useState('');
@@ -205,22 +208,49 @@ export default function RoutingPanel({
         </div>
       )}
 
-      {/* Route result */}
-      {routeResult && (
-        <div className="rounded-md bg-muted/50 p-2.5 space-y-1">
+      {/* Route options */}
+      {routes.length > 0 && (
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <Route className="h-3.5 w-3.5 text-primary" />
             Route to {selectedDest?.name || 'Destination'}
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" /> {formatDuration(routeResult.duration)}
-            </span>
-            <span>{formatDistance(routeResult.distance)}</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground">Walking speed: ~5 km/h</p>
+
+          {routes.map((r, i) => {
+            const active = i === activeRouteIndex;
+            return (
+              <button
+                key={i}
+                onClick={() => onSelectRoute(i)}
+                className={`w-full rounded-md border p-2 text-left transition-colors ${
+                  active
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border bg-muted/40 hover:bg-muted opacity-80'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold">
+                    {i === 0 ? 'Route A · Fastest' : `Route ${String.fromCharCode(65 + i)} · Alternative`}
+                  </span>
+                  {active && <span className="text-[10px] font-semibold text-primary">Showing</span>}
+                </div>
+                <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {formatDuration(r.duration)}
+                  </span>
+                  <span>{formatDistance(r.distance)}</span>
+                </div>
+              </button>
+            );
+          })}
+
+          {routes.length === 1 && (
+            <p className="text-[10px] text-muted-foreground">No alternative route available.</p>
+          )}
+          <p className="text-[10px] text-muted-foreground">Walking speed: ~5 km/h · your blue dot updates live.</p>
         </div>
       )}
+
     </div>
   );
 }
