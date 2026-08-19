@@ -199,7 +199,7 @@ export class RoadGraph {
     return nearest;
   }
 
-  dijkstra(startKey: string, endKey: string): RouteResult | null {
+  dijkstra(startKey: string, endKey: string, penalties?: Map<string, number>): RouteResult | null {
     if (!this.nodes.has(startKey) || !this.nodes.has(endKey)) return null;
     if (startKey === endKey) {
       const n = this.nodes.get(startKey)!;
