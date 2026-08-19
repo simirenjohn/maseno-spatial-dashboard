@@ -23,11 +23,15 @@ export default function Index() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [destinationLocation, setDestinationLocation] = useState<[number, number] | null>(null);
-  const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
+  const [routes, setRoutes] = useState<RouteResult[]>([]);
+  const [activeRouteIndex, setActiveRouteIndex] = useState(0);
   const [isLocating, setIsLocating] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const roadGraphRef = useRef<RoadGraph | null>(null);
+
+  const routeResult = routes[activeRouteIndex] ?? null;
+
 
   // Road network is loaded lazily (only when a route is first requested) so the
   // 320KB graph never costs anything for visitors who just browse the map.
